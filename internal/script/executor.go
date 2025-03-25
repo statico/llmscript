@@ -14,6 +14,7 @@ import (
 // Executor handles running scripts in a controlled environment
 type Executor struct {
 	workDir string
+	shell   *ShellConfig
 }
 
 // NewExecutor creates a new script executor
@@ -21,21 +22,35 @@ func NewExecutor(workDir string) (*Executor, error) {
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
-	return &Executor{workDir: workDir}, nil
+
+	shell, err := DetectShell()
+	if err != nil {
+		return nil, fmt.Errorf("failed to detect shell: %w", err)
+	}
+
+	return &Executor{
+		workDir: workDir,
+		shell:   shell,
+	}, nil
 }
 
 // ExecuteTest runs a single test case in a controlled environment
 func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test) (string, error) {
-	// Create a temporary directory for this test
-	testDir, err := os.MkdirTemp(e.workDir, "test-*")
+	// Validate script for security
+	if err := ValidateScript(script); err != nil {
+		return "", fmt.Errorf("script validation failed: %w", err)
+	}
+
+	// Create a secure temporary directory for this test
+	testDir, err := PrepareScriptEnvironment(e.workDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to create test directory: %w", err)
+		return "", fmt.Errorf("failed to prepare test environment: %w", err)
 	}
 	defer os.RemoveAll(testDir)
 
 	// Write the script to a file
 	scriptPath := filepath.Join(testDir, "script.sh")
-	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(scriptPath, []byte(script), 0750); err != nil {
 		return "", fmt.Errorf("failed to write script: %w", err)
 	}
 
@@ -47,7 +62,8 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 	}
 
 	// Run the script with the test input
-	cmd := exec.CommandContext(ctx, "bash", scriptPath)
+	args := append(e.shell.Args, scriptPath)
+	cmd := exec.CommandContext(ctx, e.shell.Path, args...)
 	cmd.Dir = testDir
 	cmd.Env = e.buildEnv(test.Environment)
 
@@ -87,7 +103,9 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 			return "", fmt.Errorf("command failed: %w\nstdout: %s\nstderr: %s", err, stdout.String(), stderr.String())
 		}
 	case <-ctx.Done():
-		cmd.Process.Kill()
+		if cmd.Process != nil {
+			cmd.Process.Kill()
+		}
 		return "", fmt.Errorf("command timed out")
 	}
 
@@ -96,7 +114,8 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 
 // runCommand executes a shell command in the given directory
 func (e *Executor) runCommand(ctx context.Context, dir, cmd string, env map[string]string) error {
-	command := exec.CommandContext(ctx, "bash", "-c", cmd)
+	args := append(e.shell.Args, cmd)
+	command := exec.CommandContext(ctx, e.shell.Path, args...)
 	command.Dir = dir
 	command.Env = e.buildEnv(env)
 
