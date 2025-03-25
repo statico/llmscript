@@ -175,23 +175,50 @@ Output only the fixed shell script, nothing else. The script should pass all tes
 func NewProvider(name string, config interface{}) (Provider, error) {
 	switch name {
 	case "ollama":
-		ollamaConfig, ok := config.(OllamaConfig)
+		cfg, ok := config.(struct {
+			Provider string `yaml:"provider"`
+			Ollama   struct {
+				Model string `yaml:"model"`
+				Host  string `yaml:"host"`
+			} `yaml:"ollama"`
+		})
 		if !ok {
 			return nil, fmt.Errorf("invalid config type for Ollama provider")
 		}
-		return NewOllamaProvider(ollamaConfig)
+		return NewOllamaProvider(OllamaConfig{
+			Model: cfg.Ollama.Model,
+			Host:  cfg.Ollama.Host,
+		})
 	case "claude":
-		claudeConfig, ok := config.(ClaudeConfig)
+		cfg, ok := config.(struct {
+			Provider string `yaml:"provider"`
+			Claude   struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"claude"`
+		})
 		if !ok {
 			return nil, fmt.Errorf("invalid config type for Claude provider")
 		}
-		return NewClaudeProvider(claudeConfig)
+		return NewClaudeProvider(ClaudeConfig{
+			APIKey: cfg.Claude.APIKey,
+			Model:  cfg.Claude.Model,
+		})
 	case "openai":
-		openaiConfig, ok := config.(OpenAIConfig)
+		cfg, ok := config.(struct {
+			Provider string `yaml:"provider"`
+			OpenAI   struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"openai"`
+		})
 		if !ok {
 			return nil, fmt.Errorf("invalid config type for OpenAI provider")
 		}
-		return NewOpenAIProvider(openaiConfig)
+		return NewOpenAIProvider(OpenAIConfig{
+			APIKey: cfg.OpenAI.APIKey,
+			Model:  cfg.OpenAI.Model,
+		})
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", name)
 	}
