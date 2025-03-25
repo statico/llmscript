@@ -43,5 +43,5 @@ Given a script description written in natural language, llmscript works by:
 1. Building a testing plan
 2. Writing a script and testing it against the plan
 3. Making changes to the script until it passes the tests, or restarting from step 2 if there are too many mistakes
-4. Checksumming the description and caching the test plan and script for future executions
+4. Checksumming the description and caching the test plan and script for future executions (into `~/.config/llmscript/cache`)
 5. Running the script
