@@ -25,6 +25,7 @@ var (
 	llmProvider  = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
 	llmModel     = flag.String("llm.model", "", "LLM model to use (overrides config)")
 	extraPrompt  = flag.String("prompt", "", "Additional prompt to provide to the LLM")
+	noCache      = flag.Bool("no-cache", false, "Skip using the cache for script generation")
 )
 
 func main() {
@@ -125,7 +126,7 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Info("Creating pipeline")
-	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *showProgress)
+	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *showProgress, *noCache)
 	if err != nil {
 		return fmt.Errorf("failed to create pipeline: %w", err)
 	}

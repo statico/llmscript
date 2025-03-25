@@ -27,17 +27,22 @@ type Pipeline struct {
 	workDir      string
 	cache        *Cache
 	showProgress bool
+	noCache      bool
 }
 
 // NewPipeline creates a new script generation pipeline
-func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Duration, workDir string, showProgress bool) (*Pipeline, error) {
+func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Duration, workDir string, showProgress bool, noCache bool) (*Pipeline, error) {
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
 
-	cache, err := NewCache()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cache: %w", err)
+	var cache *Cache
+	if !noCache {
+		var err error
+		cache, err = NewCache()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cache: %w", err)
+		}
 	}
 
 	return &Pipeline{
@@ -48,25 +53,28 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 		workDir:      workDir,
 		cache:        cache,
 		showProgress: showProgress,
+		noCache:      noCache,
 	}, nil
 }
 
 // GenerateAndTest generates a script from a natural language description and tests it
 func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (string, error) {
-	// Check cache first
-	if scripts, err := p.cache.Get(description); err == nil && scripts.MainScript != "" {
-		if p.showProgress {
-			log.Info("Found cached scripts, verifying...")
-		}
-		// Run test script to verify
-		if err := p.runTestScript(ctx, scripts); err == nil {
+	// Check cache first if enabled
+	if !p.noCache && p.cache != nil {
+		if scripts, err := p.cache.Get(description); err == nil && scripts.MainScript != "" {
 			if p.showProgress {
-				log.Success("Cached scripts verified successfully")
+				log.Info("Found cached scripts, verifying...")
 			}
-			return scripts.MainScript, nil
-		}
-		if p.showProgress {
-			log.Warn("Cached scripts failed verification, generating new scripts")
+			// Run test script to verify
+			if err := p.runTestScript(ctx, scripts); err == nil {
+				if p.showProgress {
+					log.Success("Cached scripts verified successfully")
+				}
+				return scripts.MainScript, nil
+			}
+			if p.showProgress {
+				log.Warn("Cached scripts failed verification, generating new scripts")
+			}
 		}
 	}
 
