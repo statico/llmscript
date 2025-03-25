@@ -63,66 +63,112 @@ func GetPlatformInfo() string {
 
 // Prompt templates for different operations
 const (
-	generateScriptPrompt = `You are an expert shell script developer. Create a shell script that accomplishes the following task:
+	generateScriptPrompt = `You are an expert shell script developer with deep knowledge of Unix/Linux systems, shell scripting best practices, and error handling.
+Your task is to create robust, maintainable shell scripts that work reliably across different environments.
 
-Task:
+Create a shell script that accomplishes the following task:
+
+<description>
 %s
+</description>
 
+<platform>
 Platform Information:
 %s
+</platform>
 
-Requirements:
-1. Use standard shell commands (sh/bash)
-2. Handle errors appropriately
-3. Use clear variable names
-4. Add helpful comments
-5. Follow shell scripting best practices
-6. Ensure compatibility with the specified platform
+<requirements>
+1. Use standard shell commands (sh/bash) with POSIX compliance where possible
+2. Implement comprehensive error handling with descriptive messages
+3. Use clear, descriptive variable names following shell naming conventions
+4. Add concise, meaningful comments for complex logic
+5. Follow shell scripting best practices and security guidelines
+6. Ensure cross-platform compatibility
+7. Include input validation where appropriate
+8. Use proper exit codes for different scenarios
+</requirements>
 
-Output only the shell script, nothing else.`
+<output_format>
+Output only the shell script, nothing else. The script should be ready to execute.
+</output_format>`
 
-	generateTestsPrompt = `You are an expert in testing shell scripts. Create test cases for the following script:
+	generateTestsPrompt = `You are an expert in testing shell scripts with extensive experience in test automation and quality assurance.
+Your goal is to create comprehensive test cases that verify script functionality, edge cases, and error conditions.
 
-Script:
+Create test cases for the following script:
+
+<script>
 %s
+</script>
 
-Description:
+<description>
 %s
+</description>
 
+<platform>
 Platform Information:
 %s
+</platform>
 
-Requirements:
-1. Test both success and failure cases
-2. Include setup steps if needed
-3. Test edge cases
-4. Verify output matches expectations
-5. Include timeout values
-6. Specify any required environment variables
-7. Ensure tests are compatible with the specified platform
+<requirements>
+1. Test both success and failure scenarios
+2. Include necessary setup and teardown steps
+3. Cover edge cases and boundary conditions
+4. Verify exact output matching
+5. Set appropriate timeout values
+6. Define required environment variables
+7. Ensure platform compatibility
+8. Include cleanup steps to restore system state
+</requirements>
 
-Output the test cases in JSON format.`
+<output_format>
+Output the test cases in JSON format with the following structure:
+{
+  "tests": [
+    {
+      "name": "string",
+      "setup": ["string"],
+      "input": "string",
+      "expected": "string",
+      "timeout": "duration",
+      "environment": {"key": "value"}
+    }
+  ]
+}
+</output_format>`
 
-	fixScriptPrompt = `You are an expert shell script developer. Fix the following script based on the test failures:
+	fixScriptPrompt = `You are an expert shell script developer specializing in debugging and fixing shell scripts.
+Your expertise includes error handling, cross-platform compatibility, and shell scripting best practices.
 
-Script:
+Fix the following script based on the test failures:
+
+<script>
 %s
+</script>
 
-Test Failures:
+<test_failures>
 %s
+</test_failures>
 
+<platform>
 Platform Information:
 %s
+</platform>
 
-Requirements:
-1. Fix all test failures
-2. Maintain existing functionality
-3. Keep the code clean and readable
-4. Add error handling if missing
-5. Follow shell scripting best practices
-6. Ensure compatibility with the specified platform
+<requirements>
+1. Fix all test failures while maintaining existing functionality
+2. Improve error handling and validation
+3. Enhance code readability and maintainability
+4. Follow shell scripting best practices
+5. Ensure cross-platform compatibility
+6. Add appropriate logging for debugging
+7. Implement proper cleanup in error cases
+8. Optimize performance where possible
+</requirements>
 
-Output only the fixed shell script, nothing else.`
+<output_format>
+Output only the fixed shell script, nothing else. The script should pass all tests and maintain its original functionality.
+</output_format>`
 )
 
 // NewProvider creates a new LLM provider based on the provider name
