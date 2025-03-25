@@ -1,0 +1,4 @@
+#!/usr/bin/env llmscript
+
+Print "Hello, world!"
+
