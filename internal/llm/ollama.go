@@ -61,13 +61,19 @@ func (p *OllamaProvider) FixScript(ctx context.Context, script string, failures 
 
 // generate sends a prompt to Ollama and returns the response
 func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, error) {
-	url := fmt.Sprintf("%s/api/generate", p.config.Host)
-	if url == "" {
-		url = "http://localhost:11434/api/generate"
+	host := p.config.Host
+	if host == "" {
+		host = "http://localhost:11434"
+	}
+	url := fmt.Sprintf("%s/api/generate", host)
+
+	model := p.config.Model
+	if model == "" {
+		model = "llama3.2"
 	}
 
 	reqBody := map[string]interface{}{
-		"model":  p.config.Model,
+		"model":  model,
 		"prompt": prompt,
 		"stream": false,
 	}

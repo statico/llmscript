@@ -173,48 +173,41 @@ Output only the fixed shell script, nothing else. The script should pass all tes
 
 // NewProvider creates a new LLM provider based on the provider name
 func NewProvider(name string, config interface{}) (Provider, error) {
+	if name == "" {
+		name = "ollama" // Default to Ollama if no provider specified
+	}
+
+	cfg, ok := config.(struct {
+		Provider string `yaml:"provider"`
+		Ollama   struct {
+			Model string `yaml:"model"`
+			Host  string `yaml:"host"`
+		} `yaml:"ollama"`
+		Claude struct {
+			APIKey string `yaml:"api_key"`
+			Model  string `yaml:"model"`
+		} `yaml:"claude"`
+		OpenAI struct {
+			APIKey string `yaml:"api_key"`
+			Model  string `yaml:"model"`
+		} `yaml:"openai"`
+	})
+	if !ok {
+		return nil, fmt.Errorf("invalid config type")
+	}
+
 	switch name {
 	case "ollama":
-		cfg, ok := config.(struct {
-			Provider string `yaml:"provider"`
-			Ollama   struct {
-				Model string `yaml:"model"`
-				Host  string `yaml:"host"`
-			} `yaml:"ollama"`
-		})
-		if !ok {
-			return nil, fmt.Errorf("invalid config type for Ollama provider")
-		}
 		return NewOllamaProvider(OllamaConfig{
 			Model: cfg.Ollama.Model,
 			Host:  cfg.Ollama.Host,
 		})
 	case "claude":
-		cfg, ok := config.(struct {
-			Provider string `yaml:"provider"`
-			Claude   struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"claude"`
-		})
-		if !ok {
-			return nil, fmt.Errorf("invalid config type for Claude provider")
-		}
 		return NewClaudeProvider(ClaudeConfig{
 			APIKey: cfg.Claude.APIKey,
 			Model:  cfg.Claude.Model,
 		})
 	case "openai":
-		cfg, ok := config.(struct {
-			Provider string `yaml:"provider"`
-			OpenAI   struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"openai"`
-		})
-		if !ok {
-			return nil, fmt.Errorf("invalid config type for OpenAI provider")
-		}
 		return NewOpenAIProvider(OpenAIConfig{
 			APIKey: cfg.OpenAI.APIKey,
 			Model:  cfg.OpenAI.Model,
