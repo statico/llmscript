@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/statico/llmscript/internal/llm"
+	"github.com/statico/llmscript/internal/log"
 )
 
 // Executor handles running scripts in a controlled environment
@@ -48,14 +49,18 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 	}
 	defer os.RemoveAll(testDir)
 
+	log.Debug("Test directory: %s", testDir)
+
 	// Write the script to a file
 	scriptPath := filepath.Join(testDir, "script.sh")
 	if err := os.WriteFile(scriptPath, []byte(script), 0750); err != nil {
 		return "", fmt.Errorf("failed to write script: %w", err)
 	}
+	log.Debug("Script written to: %s", scriptPath)
 
 	// Run setup commands
 	for _, cmd := range test.Setup {
+		log.Debug("Running setup command: %s", cmd)
 		if err := e.runCommand(ctx, testDir, cmd, test.Environment); err != nil {
 			return "", fmt.Errorf("setup command failed: %w", err)
 		}
@@ -66,6 +71,14 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 	cmd := exec.CommandContext(ctx, e.shell.Path, args...)
 	cmd.Dir = testDir
 	cmd.Env = e.buildEnv(test.Environment)
+
+	log.Debug("Running script with shell: %s %v", e.shell.Path, args)
+	if len(test.Environment) > 0 {
+		log.Debug("Environment variables:")
+		for k, v := range test.Environment {
+			log.Debug("  %s=%s", k, v)
+		}
+	}
 
 	// Set up input/output pipes
 	stdin, err := cmd.StdinPipe()

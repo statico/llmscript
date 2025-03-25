@@ -77,6 +77,9 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	if err != nil {
 		return "", fmt.Errorf("failed to generate initial script: %w", err)
 	}
+	if p.showProgress {
+		log.Debug("Initial script generated:\n%s", script)
+	}
 
 	// Generate test cases
 	if p.showProgress {
@@ -85,6 +88,12 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	tests, err := p.llm.GenerateTests(ctx, description)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate test cases: %w", err)
+	}
+	if p.showProgress {
+		log.Debug("Generated %d test cases", len(tests))
+		for i, test := range tests {
+			log.Debug("Test %d: %s", i+1, test.Name)
+		}
 	}
 
 	// Run test cases and fix failures
@@ -100,12 +109,23 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 			// Cache successful script and tests
 			if err := p.cache.Set(description, script, tests); err != nil {
 				log.Warn("Failed to cache script: %v", err)
+			} else if p.showProgress {
+				log.Debug("Script and tests cached successfully")
 			}
 			return script, nil
 		}
 
 		if p.showProgress {
 			log.Warn("Found %d failing tests", len(failures))
+			for i, failure := range failures {
+				log.Debug("Test failure %d: %s", i+1, failure.Test.Name)
+				if failure.Error != nil {
+					log.Debug("Error: %v", failure.Error)
+				}
+				if failure.Output != "" {
+					log.Debug("Output: %s", failure.Output)
+				}
+			}
 		}
 
 		// Fix script based on failures
@@ -117,6 +137,9 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 			if err != nil {
 				return "", fmt.Errorf("failed to fix script: %w", err)
 			}
+			if p.showProgress {
+				log.Debug("Fixed script:\n%s", script)
+			}
 
 			failures = p.runTests(ctx, script, tests)
 			if len(failures) == 0 {
@@ -126,6 +149,8 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 				// Cache successful script and tests
 				if err := p.cache.Set(description, script, tests); err != nil {
 					log.Warn("Failed to cache script: %v", err)
+				} else if p.showProgress {
+					log.Debug("Script and tests cached successfully")
 				}
 				return script, nil
 			}
@@ -141,6 +166,9 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 		script, err = p.llm.GenerateScript(ctx, description)
 		if err != nil {
 			return "", fmt.Errorf("failed to generate new script: %w", err)
+		}
+		if p.showProgress {
+			log.Debug("New script generated:\n%s", script)
 		}
 	}
 

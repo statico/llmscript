@@ -15,6 +15,6 @@ lint:
 
 example:
 	make
-	./bin/llmscript examples/hello-world
+	./bin/llmscript --verbose examples/hello-world
 
 .DEFAULT_GOAL := build

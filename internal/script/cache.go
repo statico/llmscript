@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/statico/llmscript/internal/log"
 )
 
 // Cache handles caching of successful scripts and their test plans
@@ -35,11 +37,17 @@ func (c *Cache) Get(description string) (string, []Test, error) {
 	scriptPath := filepath.Join(c.dir, hash+".sh")
 	testsPath := filepath.Join(c.dir, hash+".tests.json")
 
+	log.Debug("Checking cache for script with hash: %s", hash)
+	log.Debug("Script path: %s", scriptPath)
+	log.Debug("Tests path: %s", testsPath)
+
 	// Check if both files exist
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		log.Debug("Script not found in cache")
 		return "", nil, nil
 	}
 	if _, err := os.Stat(testsPath); os.IsNotExist(err) {
+		log.Debug("Tests not found in cache")
 		return "", nil, nil
 	}
 
@@ -48,6 +56,7 @@ func (c *Cache) Get(description string) (string, []Test, error) {
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to read cached script: %w", err)
 	}
+	log.Debug("Found cached script")
 
 	// Read tests
 	testsData, err := os.ReadFile(testsPath)
@@ -59,6 +68,7 @@ func (c *Cache) Get(description string) (string, []Test, error) {
 	if err := json.Unmarshal(testsData, &tests); err != nil {
 		return "", nil, fmt.Errorf("failed to parse cached tests: %w", err)
 	}
+	log.Debug("Found %d cached tests", len(tests))
 
 	return string(script), tests, nil
 }
@@ -69,10 +79,15 @@ func (c *Cache) Set(description string, script string, tests []Test) error {
 	scriptPath := filepath.Join(c.dir, hash+".sh")
 	testsPath := filepath.Join(c.dir, hash+".tests.json")
 
+	log.Debug("Caching script with hash: %s", hash)
+	log.Debug("Script path: %s", scriptPath)
+	log.Debug("Tests path: %s", testsPath)
+
 	// Write script
 	if err := os.WriteFile(scriptPath, []byte(script), 0644); err != nil {
 		return fmt.Errorf("failed to write cached script: %w", err)
 	}
+	log.Debug("Script cached successfully")
 
 	// Write tests
 	testsData, err := json.Marshal(tests)
@@ -82,6 +97,7 @@ func (c *Cache) Set(description string, script string, tests []Test) error {
 	if err := os.WriteFile(testsPath, testsData, 0644); err != nil {
 		return fmt.Errorf("failed to write cached tests: %w", err)
 	}
+	log.Debug("Tests cached successfully")
 
 	return nil
 }

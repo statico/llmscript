@@ -119,6 +119,9 @@ func runScript(cfg *config.Config, scriptFile string) error {
 		return fmt.Errorf("failed to create work directory: %w", err)
 	}
 	defer os.RemoveAll(workDir)
+	if *verbose {
+		log.Info("Work directory: %s", workDir)
+	}
 
 	log.Info("Creating pipeline")
 	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *showProgress)
@@ -133,6 +136,10 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	script, err := pipeline.GenerateAndTest(ctx, string(content))
 	if err != nil {
 		return fmt.Errorf("failed to generate working script: %w", err)
+	}
+
+	if *verbose {
+		log.Info("Generated script:\n%s", script)
 	}
 
 	outputFile := scriptFile + ".sh"

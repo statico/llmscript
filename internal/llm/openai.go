@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/statico/llmscript/internal/log"
 )
 
 // OpenAIProvider implements the Provider interface using OpenAI's API
@@ -41,11 +43,15 @@ func (p *OpenAIProvider) GenerateTests(ctx context.Context, description string) 
 		return nil, fmt.Errorf("failed to generate tests: %w", err)
 	}
 
-	var tests []Test
-	if err := json.Unmarshal([]byte(response), &tests); err != nil {
+	log.Debug("Raw LLM response:\n%s", response)
+
+	var result struct {
+		Tests []Test `json:"tests"`
+	}
+	if err := json.Unmarshal([]byte(response), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse test cases: %w", err)
 	}
-	return tests, nil
+	return result.Tests, nil
 }
 
 // FixScript attempts to fix a script based on test failures
