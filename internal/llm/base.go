@@ -32,3 +32,10 @@ func (p *BaseProvider) ValidateConfig() error {
 	}
 	return nil
 }
+
+// formatPrompt formats a prompt template with the given arguments and platform information
+func (p *BaseProvider) formatPrompt(template string, args ...interface{}) string {
+	// Add platform information as the last argument
+	args = append(args, GetPlatformInfo())
+	return fmt.Sprintf(template, args...)
+}
