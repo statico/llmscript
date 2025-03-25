@@ -122,9 +122,11 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 
 			// Run test script
 			if err := p.runTestScript(ctx, scripts); err == nil {
-				// Cache successful scripts
-				if err := p.cache.Set(description, scripts); err != nil {
-					log.Warn("Failed to cache successful scripts: %v", err)
+				// Cache successful scripts if caching is enabled
+				if !p.noCache && p.cache != nil {
+					if err := p.cache.Set(description, scripts); err != nil {
+						log.Warn("Failed to cache successful scripts: %v", err)
+					}
 				}
 				return scripts.MainScript, nil
 			}

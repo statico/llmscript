@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/statico/llmscript/internal/log"
 )
 
 // OllamaProvider implements the Provider interface using Ollama
@@ -70,6 +72,7 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 	reqBody := map[string]interface{}{
 		"model":  p.config.Model,
 		"prompt": prompt,
+		"stream": false,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -96,12 +99,21 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 
 	var result struct {
 		Response string `json:"response"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
+		Done     bool   `json:"done"`
 	}
 
-	return result.Response, nil
+	var fullResponse strings.Builder
+	decoder := json.NewDecoder(resp.Body)
+	for decoder.More() {
+		if err := decoder.Decode(&result); err != nil {
+			return "", fmt.Errorf("failed to decode response: %w", err)
+		}
+		fullResponse.WriteString(result.Response)
+	}
+
+	response := fullResponse.String()
+	log.Debug("Raw Ollama response:\n%s", response)
+	return response, nil
 }
 
 // formatFailures formats test failures into a string

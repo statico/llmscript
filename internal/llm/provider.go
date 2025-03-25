@@ -202,37 +202,66 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 		name = "ollama" // Default to Ollama if no provider specified
 	}
 
-	cfg, ok := config.(struct {
-		Provider string `yaml:"provider"`
-		Ollama   struct {
-			Model string `yaml:"model"`
-			Host  string `yaml:"host"`
-		} `yaml:"ollama"`
-		Claude struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"claude"`
-		OpenAI struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"openai"`
-	})
-	if !ok {
-		return nil, fmt.Errorf("invalid config type")
+	// Default Ollama config
+	ollamaConfig := OllamaConfig{
+		Model: "llama3.2",
+		Host:  "http://localhost:11434",
+	}
+
+	// If config is provided, try to extract values
+	if config != nil {
+		cfg, ok := config.(struct {
+			Provider string `yaml:"provider"`
+			Ollama   struct {
+				Model string `yaml:"model"`
+				Host  string `yaml:"host"`
+			} `yaml:"ollama"`
+			Claude struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"claude"`
+			OpenAI struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"openai"`
+		})
+		if ok {
+			if cfg.Ollama.Model != "" {
+				ollamaConfig.Model = cfg.Ollama.Model
+			}
+			if cfg.Ollama.Host != "" {
+				ollamaConfig.Host = cfg.Ollama.Host
+			}
+		}
 	}
 
 	switch name {
 	case "ollama":
-		return NewOllamaProvider(OllamaConfig{
-			Model: cfg.Ollama.Model,
-			Host:  cfg.Ollama.Host,
-		})
+		return NewOllamaProvider(ollamaConfig)
 	case "claude":
+		cfg, ok := config.(struct {
+			Claude struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"claude"`
+		})
+		if !ok || cfg.Claude.APIKey == "" {
+			return nil, fmt.Errorf("Claude API key is required")
+		}
 		return NewClaudeProvider(ClaudeConfig{
 			APIKey: cfg.Claude.APIKey,
 			Model:  cfg.Claude.Model,
 		})
 	case "openai":
+		cfg, ok := config.(struct {
+			OpenAI struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"openai"`
+		})
+		if !ok || cfg.OpenAI.APIKey == "" {
+			return nil, fmt.Errorf("OpenAI API key is required")
+		}
 		return NewOpenAIProvider(OpenAIConfig{
 			APIKey: cfg.OpenAI.APIKey,
 			Model:  cfg.OpenAI.Model,

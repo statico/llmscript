@@ -5,18 +5,21 @@ const (
 
 %s
 
-The first script should be the main script that does the work. The second script should be a test script that verifies the main script works correctly.
+IMPORTANT: You MUST format your response EXACTLY as follows, with NO additional text or explanations:
 
-Format your response as:
-<main script>
+#!/bin/bash
+# First script content here
+# This is the main script that does the work
 ---
-<test script>
+#!/bin/bash
+# Second script content here
+# This is the test script that verifies the main script
 
 The test script should:
 1. Set up any necessary test environment
-2. Run the main script
+2. Run the main script with ./script.sh
 3. Verify the output and state
-4. Exit with success/failure status
+4. Exit with 0 for success, non-zero for failure
 
 Platform info: %s`
 
