@@ -1,0 +1,9 @@
+#!/usr/bin/env llmscript
+
+Create output directory `products`
+Download JSON product list from https://dummyjson.com/products
+Use jq to extract ID and image URL using '.products[].id, .products[].images[0]'
+Limit to 10 products
+Download each image to `products/<id>.jpg`
+Resize each image to 100x100 using ImageMagick
+

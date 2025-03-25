@@ -13,8 +13,12 @@ clean:
 lint:
 	golangci-lint run
 
-example:
+example1:
 	make
-	./bin/llmscript --debug examples/hello-world
+	./bin/llmscript --debug --no-cache examples/hello-world
+
+example2:
+	make
+	./bin/llmscript --debug --no-cache examples/product-downloader
 
 .DEFAULT_GOAL := build
