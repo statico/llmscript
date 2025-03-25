@@ -34,9 +34,48 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
+		LLM: struct {
+			Provider string `yaml:"provider"`
+			Ollama   struct {
+				Model string `yaml:"model"`
+				Host  string `yaml:"host"`
+			} `yaml:"ollama"`
+			Claude struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"claude"`
+			OpenAI struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"openai"`
+		}{
+			Provider: "ollama",
+			Ollama: struct {
+				Model string `yaml:"model"`
+				Host  string `yaml:"host"`
+			}{
+				Model: "llama3.2",
+				Host:  "http://localhost:11434",
+			},
+			Claude: struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			}{
+				APIKey: "${CLAUDE_API_KEY}",
+				Model:  "claude-3-opus-20240229",
+			},
+			OpenAI: struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			}{
+				APIKey: "${OPENAI_API_KEY}",
+				Model:  "gpt-4-turbo-preview",
+			},
+		},
 		MaxFixes:    10,
 		MaxAttempts: 3,
 		Timeout:     30 * time.Second,
+		ExtraPrompt: "Use ANSI color codes to make the output more readable.",
 	}
 }
 
