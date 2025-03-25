@@ -83,6 +83,7 @@ func main() {
 	// Set up logging
 	if *debug {
 		log.SetLevel(log.DebugLevel)
+		*verbose = true // Enable verbose mode when debug is enabled
 	} else if *verbose {
 		log.SetLevel(log.InfoLevel)
 	} else {
