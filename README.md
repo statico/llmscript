@@ -4,6 +4,9 @@ llmscript is a shell script that uses a large language model (LLM) to build and 
 
 You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [Claude](https://www.anthropic.com/claude).
 
+> [!NOTE]
+> Most of this project was written by an LLM, so it's not perfect. I can't actually claim that I "wrote" any of the source code.
+
 ## Example
 
 ```sh
@@ -103,3 +106,8 @@ You can override configuration settings using command line flags:
 ```shell
 llmscript --llm.provider=claude --timeout=10 script.txt
 ```
+
+## Caveats
+
+> [!WARNING]
+> This is an experimental project. It generates and executes shell scripts, which could be dangerous if the LLM generates malicious code. Use at your own risk and always review generated scripts before running them.
