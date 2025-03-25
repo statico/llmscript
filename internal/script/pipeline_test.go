@@ -14,21 +14,16 @@ import (
 
 // mockLLMProvider implements the LLM provider interface for testing
 type mockLLMProvider struct {
-	generateScriptFunc func(ctx context.Context, description string) (string, error)
-	generateTestsFunc  func(ctx context.Context, description string) ([]llm.Test, error)
-	fixScriptFunc      func(ctx context.Context, script string, failures []llm.TestFailure) (string, error)
+	generateScriptsFunc func(ctx context.Context, description string) (llm.ScriptPair, error)
+	fixScriptsFunc      func(ctx context.Context, scripts llm.ScriptPair, error string) (llm.ScriptPair, error)
 }
 
-func (m *mockLLMProvider) GenerateScript(ctx context.Context, description string) (string, error) {
-	return m.generateScriptFunc(ctx, description)
+func (m *mockLLMProvider) GenerateScripts(ctx context.Context, description string) (llm.ScriptPair, error) {
+	return m.generateScriptsFunc(ctx, description)
 }
 
-func (m *mockLLMProvider) GenerateTests(ctx context.Context, description string) ([]llm.Test, error) {
-	return m.generateTestsFunc(ctx, description)
-}
-
-func (m *mockLLMProvider) FixScript(ctx context.Context, script string, failures []llm.TestFailure) (string, error) {
-	return m.fixScriptFunc(ctx, script, failures)
+func (m *mockLLMProvider) FixScripts(ctx context.Context, scripts llm.ScriptPair, error string) (llm.ScriptPair, error) {
+	return m.fixScriptsFunc(ctx, scripts, error)
 }
 
 func TestPipeline_GenerateAndTest(t *testing.T) {
@@ -41,26 +36,21 @@ func TestPipeline_GenerateAndTest(t *testing.T) {
 
 	// Create a mock LLM provider
 	mockLLM := &mockLLMProvider{
-		generateScriptFunc: func(ctx context.Context, description string) (string, error) {
-			return `#!/bin/bash
-echo "Hello, World!"`, nil
-		},
-		generateTestsFunc: func(ctx context.Context, description string) ([]llm.Test, error) {
-			return []llm.Test{
-				{
-					Name:     "basic_test",
-					Input:    "",
-					Expected: "Hello, World!\n",
-				},
+		generateScriptsFunc: func(ctx context.Context, description string) (llm.ScriptPair, error) {
+			return llm.ScriptPair{
+				MainScript: `#!/bin/bash
+echo "Hello, World!"`,
+				TestScript: `#!/bin/bash
+echo "Hello, World!"`,
 			}, nil
 		},
-		fixScriptFunc: func(ctx context.Context, script string, failures []llm.TestFailure) (string, error) {
-			return script, nil
+		fixScriptsFunc: func(ctx context.Context, scripts llm.ScriptPair, error string) (llm.ScriptPair, error) {
+			return scripts, nil
 		},
 	}
 
 	// Create a new pipeline
-	pipeline, err := NewPipeline(mockLLM, 1, 1, 5*time.Second, tmpDir, false)
+	pipeline, err := NewPipeline(mockLLM, 1, 1, 5*time.Second, tmpDir, false, false)
 	require.NoError(t, err)
 
 	// Test script generation
@@ -82,11 +72,11 @@ echo "Hello, World!"`, nil
 	assert.Equal(t, script, string(scriptContent))
 
 	// Test script execution
-	output, err := pipeline.executor.ExecuteTest(context.Background(), script, llm.Test{
-		Name:     "basic_test",
-		Input:    "",
-		Expected: "Hello, World!\n",
-	})
+	scripts := llm.ScriptPair{
+		MainScript: script,
+		TestScript: `#!/bin/bash
+echo "Hello, World!"`,
+	}
+	err = pipeline.runTestScript(context.Background(), scripts)
 	require.NoError(t, err)
-	assert.Equal(t, "Hello, World!\n", output)
 }
