@@ -89,7 +89,14 @@ Platform Information:
 </requirements>
 
 <output_format>
-Output only the shell script, nothing else. The script should be ready to execute.
+Output your response in the following format:
+
+<script>
+#!/usr/bin/env bash
+# Your shell script content here
+</script>
+
+You *MUST NOT* include any other text, explanations, or markdown formatting.
 </output_format>`
 
 	generateTestsPrompt = `You are an expert in testing shell scripts with extensive experience in test automation and quality assurance.
@@ -167,7 +174,14 @@ Platform Information:
 </requirements>
 
 <output_format>
-Output only the fixed shell script, nothing else. The script should pass all tests and maintain its original functionality.
+Output your response in the following format:
+
+<script>
+#!/usr/bin/env bash
+# Your fixed shell script content here
+</script>
+
+Do not include any other text, explanations, or markdown formatting. Only output the script between the markers.
 </output_format>`
 )
 

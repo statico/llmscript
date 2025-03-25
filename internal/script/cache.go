@@ -18,12 +18,12 @@ type Cache struct {
 
 // NewCache creates a new cache instance
 func NewCache() (*Cache, error) {
-	configDir, err := os.UserConfigDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config dir: %w", err)
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	cacheDir := filepath.Join(configDir, "llmscript", "cache")
+	cacheDir := filepath.Join(homeDir, ".config", "llmscript", "cache")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 	}
