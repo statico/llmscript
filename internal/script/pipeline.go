@@ -3,6 +3,9 @@ package script
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/statico/llmscript/internal/llm"
@@ -21,16 +24,15 @@ type Pipeline struct {
 	maxFixes     int
 	maxAttempts  int
 	timeout      time.Duration
-	executor     *Executor
+	workDir      string
 	cache        *Cache
 	showProgress bool
 }
 
 // NewPipeline creates a new script generation pipeline
 func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Duration, workDir string, showProgress bool) (*Pipeline, error) {
-	executor, err := NewExecutor(workDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create executor: %w", err)
+	if err := os.MkdirAll(workDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
 
 	cache, err := NewCache()
@@ -43,7 +45,7 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 		maxFixes:     maxFixes,
 		maxAttempts:  maxAttempts,
 		timeout:      timeout,
-		executor:     executor,
+		workDir:      workDir,
 		cache:        cache,
 		showProgress: showProgress,
 	}, nil
@@ -52,153 +54,106 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 // GenerateAndTest generates a script from a natural language description and tests it
 func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (string, error) {
 	// Check cache first
-	if script, tests, err := p.cache.Get(description); err == nil && script != "" {
+	if scripts, err := p.cache.Get(description); err == nil && scripts.MainScript != "" {
 		if p.showProgress {
-			log.Info("Found cached script, verifying...")
+			log.Info("Found cached scripts, verifying...")
 		}
-		// Run cached tests to verify
-		failures := p.runTests(ctx, script, tests)
-		if len(failures) == 0 {
+		// Run test script to verify
+		if err := p.runTestScript(ctx, scripts); err == nil {
 			if p.showProgress {
-				log.Success("Cached script verified successfully")
+				log.Success("Cached scripts verified successfully")
 			}
-			return script, nil
+			return scripts.MainScript, nil
 		}
 		if p.showProgress {
-			log.Warn("Cached script failed verification, generating new script")
+			log.Warn("Cached scripts failed verification, generating new scripts")
 		}
 	}
 
-	// Generate initial script
+	// Generate initial scripts
 	if p.showProgress {
-		log.Info("Generating initial script...")
+		log.Info("Generating initial scripts...")
 	}
-	script, err := p.llm.GenerateScript(ctx, description)
+	scripts, err := p.llm.GenerateScripts(ctx, description)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate initial script: %w", err)
+		return "", fmt.Errorf("failed to generate initial scripts: %w", err)
 	}
 	if p.showProgress {
-		log.Debug("Initial script generated:\n%s", script)
+		log.Debug("Initial scripts generated")
 	}
 
-	// Generate test cases
-	if p.showProgress {
-		log.Info("Generating test cases...")
-	}
-	tests, err := p.llm.GenerateTests(ctx, description)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate test cases: %w", err)
-	}
-	if p.showProgress {
-		log.Debug("Generated %d test cases", len(tests))
-		for i, test := range tests {
-			log.Debug("Test %d: %s", i+1, test.Name)
-		}
-	}
-
-	// Run test cases and fix failures
+	// Run test script and fix failures
 	for attempt := 0; attempt < p.maxAttempts; attempt++ {
-		if p.showProgress {
-			log.Info("Attempt %d/%d: Running tests...", attempt+1, p.maxAttempts)
-		}
-		failures := p.runTests(ctx, script, tests)
-		if len(failures) == 0 {
+		if attempt > 0 {
 			if p.showProgress {
-				log.Success("All tests passed!")
+				log.Info("Attempt %d/%d: Generating new scripts...", attempt+1, p.maxAttempts)
 			}
-			// Cache successful script and tests
-			if err := p.cache.Set(description, script, tests); err != nil {
-				log.Warn("Failed to cache script: %v", err)
-			} else if p.showProgress {
-				log.Debug("Script and tests cached successfully")
-			}
-			return script, nil
-		}
-
-		if p.showProgress {
-			log.Warn("Found %d failing tests", len(failures))
-			for i, failure := range failures {
-				log.Debug("Test failure %d: %s", i+1, failure.Test.Name)
-				if failure.Error != nil {
-					log.Debug("Error: %v", failure.Error)
-				}
-				if failure.Output != "" {
-					log.Debug("Output: %s", failure.Output)
-				}
-			}
-		}
-
-		// Fix script based on failures
-		for fix := 0; fix < p.maxFixes; fix++ {
-			if p.showProgress {
-				log.Info("Fix %d/%d: Attempting to fix script...", fix+1, p.maxFixes)
-			}
-			script, err = p.llm.FixScript(ctx, script, failures)
+			scripts, err = p.llm.GenerateScripts(ctx, description)
 			if err != nil {
-				return "", fmt.Errorf("failed to fix script: %w", err)
+				return "", fmt.Errorf("failed to generate new scripts: %w", err)
 			}
 			if p.showProgress {
-				log.Debug("Fixed script:\n%s", script)
+				log.Debug("New scripts generated")
 			}
+		}
 
-			failures = p.runTests(ctx, script, tests)
-			if len(failures) == 0 {
+		// Try to fix any failures
+		for fix := 0; fix < p.maxFixes; fix++ {
+			if fix > 0 {
 				if p.showProgress {
-					log.Success("All tests passed after fix!")
+					log.Info("Fix attempt %d/%d...", fix+1, p.maxFixes)
 				}
-				// Cache successful script and tests
-				if err := p.cache.Set(description, script, tests); err != nil {
-					log.Warn("Failed to cache script: %v", err)
-				} else if p.showProgress {
-					log.Debug("Script and tests cached successfully")
+				scripts, err = p.llm.FixScripts(ctx, scripts, "Test script failed")
+				if err != nil {
+					return "", fmt.Errorf("failed to fix scripts: %w", err)
 				}
-				return script, nil
+				if p.showProgress {
+					log.Debug("Scripts fixed")
+				}
 			}
-			if p.showProgress {
-				log.Warn("Fix %d/%d: Still have %d failing tests", fix+1, p.maxFixes, len(failures))
-			}
-		}
 
-		// If we've exhausted fixes, try generating a new script
-		if p.showProgress {
-			log.Info("Attempt %d/%d: Generating new script...", attempt+1, p.maxAttempts)
-		}
-		script, err = p.llm.GenerateScript(ctx, description)
-		if err != nil {
-			return "", fmt.Errorf("failed to generate new script: %w", err)
-		}
-		if p.showProgress {
-			log.Debug("New script generated:\n%s", script)
+			// Run test script
+			if err := p.runTestScript(ctx, scripts); err == nil {
+				// Cache successful scripts
+				if err := p.cache.Set(description, scripts); err != nil {
+					log.Warn("Failed to cache successful scripts: %v", err)
+				}
+				return scripts.MainScript, nil
+			}
 		}
 	}
 
-	return "", fmt.Errorf("failed to generate working script after %d attempts", p.maxAttempts)
+	return "", fmt.Errorf("failed to generate working scripts after %d attempts", p.maxAttempts)
 }
 
-// runTests executes all test cases and returns any failures
-func (p *Pipeline) runTests(ctx context.Context, script string, tests []Test) []TestFailure {
-	var failures []TestFailure
-	for i, test := range tests {
-		if p.showProgress {
-			log.Debug("Running test %d/%d...", i+1, len(tests))
-		}
-		output, err := p.executor.ExecuteTest(ctx, script, test)
-		if err != nil {
-			failures = append(failures, TestFailure{
-				Test:     test,
-				Error:    err,
-				ExitCode: -1,
-			})
-			continue
-		}
-
-		if output != test.Expected {
-			failures = append(failures, TestFailure{
-				Test:     test,
-				Output:   output,
-				ExitCode: 0,
-			})
-		}
+// runTestScript executes the test script in a controlled environment
+func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) error {
+	// Create a secure temporary directory for this test
+	testDir, err := os.MkdirTemp(p.workDir, "test-*")
+	if err != nil {
+		return fmt.Errorf("failed to create test directory: %w", err)
 	}
-	return failures
+	defer os.RemoveAll(testDir)
+
+	// Write both scripts to files
+	mainScriptPath := filepath.Join(testDir, "script.sh")
+	testScriptPath := filepath.Join(testDir, "test.sh")
+
+	if err := os.WriteFile(mainScriptPath, []byte(scripts.MainScript), 0750); err != nil {
+		return fmt.Errorf("failed to write main script: %w", err)
+	}
+	if err := os.WriteFile(testScriptPath, []byte(scripts.TestScript), 0750); err != nil {
+		return fmt.Errorf("failed to write test script: %w", err)
+	}
+
+	// Run the test script
+	cmd := exec.CommandContext(ctx, "sh", testScriptPath)
+	cmd.Dir = testDir
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("test script failed: %w\nOutput:\n%s", err, output)
+	}
+
+	return nil
 }

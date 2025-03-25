@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/statico/llmscript/internal/config"
@@ -143,21 +143,12 @@ func runScript(cfg *config.Config, scriptFile string) error {
 		log.Info("Generated script:\n%s", script)
 	}
 
-	outputFile := scriptFile + ".sh"
-	log.Info("Writing output script:", outputFile)
-	if err := os.WriteFile(outputFile, []byte(script), 0755); err != nil {
-		return fmt.Errorf("failed to write output script: %w", err)
+	// Write the script to a file
+	scriptPath := filepath.Join(workDir, "script.sh")
+	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+		return fmt.Errorf("failed to write script: %w", err)
 	}
 
-	log.Info("Executing script")
-	cmd := exec.Command("bash", outputFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("script execution failed: %w", err)
-	}
-
+	log.Success("Script generated successfully!")
 	return nil
 }

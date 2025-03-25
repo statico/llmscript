@@ -29,14 +29,10 @@ type TestFailure struct {
 
 // Provider defines the interface for LLM providers
 type Provider interface {
-	// GenerateScript creates a shell script from a natural language description
-	GenerateScript(ctx context.Context, description string) (string, error)
-
-	// GenerateTests creates test cases for a script based on its description
-	GenerateTests(ctx context.Context, description string) ([]Test, error)
-
-	// FixScript attempts to fix a script based on test failures
-	FixScript(ctx context.Context, script string, failures []TestFailure) (string, error)
+	// GenerateScripts creates a shell script and its test script from a natural language description
+	GenerateScripts(ctx context.Context, description string) (ScriptPair, error)
+	// FixScripts attempts to fix both scripts based on test failures
+	FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error)
 }
 
 // GetPlatformInfo returns information about the current platform

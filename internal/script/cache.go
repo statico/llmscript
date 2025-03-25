@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/statico/llmscript/internal/llm"
 	"github.com/statico/llmscript/internal/log"
 )
 
@@ -31,73 +32,52 @@ func NewCache() (*Cache, error) {
 	return &Cache{dir: cacheDir}, nil
 }
 
-// Get retrieves a cached script and its test plan
-func (c *Cache) Get(description string) (string, []Test, error) {
+// Get retrieves a cached script pair
+func (c *Cache) Get(description string) (llm.ScriptPair, error) {
 	hash := c.hashDescription(description)
-	scriptPath := filepath.Join(c.dir, hash+".sh")
-	testsPath := filepath.Join(c.dir, hash+".tests.json")
+	scriptPath := filepath.Join(c.dir, hash+".json")
 
 	log.Debug("Checking cache for script with hash: %s", hash)
 	log.Debug("Script path: %s", scriptPath)
-	log.Debug("Tests path: %s", testsPath)
 
-	// Check if both files exist
+	// Check if file exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		log.Debug("Script not found in cache")
-		return "", nil, nil
-	}
-	if _, err := os.Stat(testsPath); os.IsNotExist(err) {
-		log.Debug("Tests not found in cache")
-		return "", nil, nil
+		return llm.ScriptPair{}, nil
 	}
 
-	// Read script
-	script, err := os.ReadFile(scriptPath)
+	// Read script pair
+	data, err := os.ReadFile(scriptPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to read cached script: %w", err)
-	}
-	log.Debug("Found cached script")
-
-	// Read tests
-	testsData, err := os.ReadFile(testsPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to read cached tests: %w", err)
+		return llm.ScriptPair{}, fmt.Errorf("failed to read cached script: %w", err)
 	}
 
-	var tests []Test
-	if err := json.Unmarshal(testsData, &tests); err != nil {
-		return "", nil, fmt.Errorf("failed to parse cached tests: %w", err)
+	var scripts llm.ScriptPair
+	if err := json.Unmarshal(data, &scripts); err != nil {
+		return llm.ScriptPair{}, fmt.Errorf("failed to parse cached scripts: %w", err)
 	}
-	log.Debug("Found %d cached tests", len(tests))
+	log.Debug("Found cached scripts")
 
-	return string(script), tests, nil
+	return scripts, nil
 }
 
-// Set stores a successful script and its test plan
-func (c *Cache) Set(description string, script string, tests []Test) error {
+// Set stores a successful script pair
+func (c *Cache) Set(description string, scripts llm.ScriptPair) error {
 	hash := c.hashDescription(description)
-	scriptPath := filepath.Join(c.dir, hash+".sh")
-	testsPath := filepath.Join(c.dir, hash+".tests.json")
+	scriptPath := filepath.Join(c.dir, hash+".json")
 
 	log.Debug("Caching script with hash: %s", hash)
 	log.Debug("Script path: %s", scriptPath)
-	log.Debug("Tests path: %s", testsPath)
 
-	// Write script
-	if err := os.WriteFile(scriptPath, []byte(script), 0644); err != nil {
+	// Write script pair
+	data, err := json.Marshal(scripts)
+	if err != nil {
+		return fmt.Errorf("failed to marshal scripts: %w", err)
+	}
+	if err := os.WriteFile(scriptPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write cached script: %w", err)
 	}
-	log.Debug("Script cached successfully")
-
-	// Write tests
-	testsData, err := json.Marshal(tests)
-	if err != nil {
-		return fmt.Errorf("failed to marshal tests: %w", err)
-	}
-	if err := os.WriteFile(testsPath, testsData, 0644); err != nil {
-		return fmt.Errorf("failed to write cached tests: %w", err)
-	}
-	log.Debug("Tests cached successfully")
+	log.Debug("Scripts cached successfully")
 
 	return nil
 }

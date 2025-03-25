@@ -5,9 +5,25 @@ import (
 	"fmt"
 )
 
+// ScriptPair represents a main script and its test script
+type ScriptPair struct {
+	MainScript string // The actual script to run
+	TestScript string // The script that tests the main script
+}
+
 // BaseProvider provides common functionality for LLM providers
 type BaseProvider struct {
 	Config interface{}
+}
+
+// GenerateScripts is a default implementation that returns an error
+func (p *BaseProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
+	return ScriptPair{}, fmt.Errorf("GenerateScripts not implemented")
+}
+
+// FixScripts is a default implementation that returns an error
+func (p *BaseProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
+	return ScriptPair{}, fmt.Errorf("FixScripts not implemented")
 }
 
 // GenerateScript is a default implementation that returns an error
