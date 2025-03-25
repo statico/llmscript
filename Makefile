@@ -1,4 +1,4 @@
-.PHONY: build test clean lint
+.PHONY: build test clean lint example
 
 build:
 	go build -o bin/llmscript cmd/llmscript/main.go
@@ -12,5 +12,9 @@ clean:
 
 lint:
 	golangci-lint run
+
+example:
+	make
+	./bin/llmscript examples/hello-world
 
 .DEFAULT_GOAL := build
