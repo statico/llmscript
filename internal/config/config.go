@@ -1,8 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -23,63 +25,64 @@ type Config struct {
 			Model  string `yaml:"model"`
 		} `yaml:"openai"`
 	} `yaml:"llm"`
-	MaxFixes         int    `yaml:"max_fixes"`
-	MaxAttempts      int    `yaml:"max_attempts"`
-	Timeout          int    `yaml:"timeout"`
-	AdditionalPrompt string `yaml:"additional_prompt"`
+	MaxFixes    int           `yaml:"max_fixes"`
+	MaxAttempts int           `yaml:"max_attempts"`
+	Timeout     time.Duration `yaml:"timeout"`
+	ExtraPrompt string        `yaml:"additional_prompt"`
 }
 
-func Load(configPath string) (*Config, error) {
-	cfg := &Config{
+func DefaultConfig() *Config {
+	return &Config{
 		MaxFixes:    10,
 		MaxAttempts: 3,
-		Timeout:     30,
+		Timeout:     30 * time.Second,
+	}
+}
+
+func LoadConfig() (*Config, error) {
+	config := DefaultConfig()
+
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config dir: %w", err)
 	}
 
-	if configPath == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-		configPath = filepath.Join(home, ".config", "llmscript", "config.yaml")
-	}
-
+	configPath := filepath.Join(configDir, "llmscript", "config.yaml")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return cfg, nil
+			return config, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return nil, err
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	return cfg, nil
+	return config, nil
 }
 
-func WriteDefaultConfig() error {
-	home, err := os.UserHomeDir()
+func WriteConfig(config *Config) error {
+	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get config dir: %w", err)
 	}
 
-	configDir := filepath.Join(home, ".config", "llmscript")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return err
+	llmscriptDir := filepath.Join(configDir, "llmscript")
+	if err := os.MkdirAll(llmscriptDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	cfg := &Config{
-		MaxFixes:    10,
-		MaxAttempts: 3,
-		Timeout:     30,
-	}
-
-	data, err := yaml.Marshal(cfg)
+	data, err := yaml.Marshal(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	return os.WriteFile(filepath.Join(configDir, "config.yaml"), data, 0644)
+	configPath := filepath.Join(llmscriptDir, "config.yaml")
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }

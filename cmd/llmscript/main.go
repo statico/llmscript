@@ -9,19 +9,19 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "", "Path to config file")
 	writeConfig := flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
 	flag.Parse()
 
 	if *writeConfig {
-		if err := config.WriteDefaultConfig(); err != nil {
+		cfg := config.DefaultConfig()
+		if err := config.WriteConfig(cfg); err != nil {
 			log.Fatal("Failed to write default config:", err)
 		}
 		fmt.Println("Default config written to ~/.config/llmscript/config.yaml")
 		return
 	}
 
-	cfg, err := config.Load(*configPath)
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
