@@ -45,3 +45,61 @@ Given a script description written in natural language, llmscript works by:
 3. Making changes to the script until it passes the tests, or restarting from step 2 if there are too many mistakes
 4. Checksumming the description and caching the test plan and script for future executions (into `~/.config/llmscript/cache`)
 5. Running the script
+
+## Configuration
+
+llmscript can be configured using a YAML file located at `~/.config/llmscript/config.yaml`. You can auto-generate a configuration file using the `llmscript --write-config` command.
+
+Here's an example configuration:
+
+```yaml
+# LLM configuration
+llm:
+  # The LLM provider to use (required)
+  provider: "ollama"  # or "claude", "openai", etc.
+
+  # Provider-specific settings
+  ollama:
+    model: "llama3.2"  # The model to use
+    host: "http://localhost:11434"  # Optional: Ollama host URL
+
+  claude:
+    api_key: "${CLAUDE_API_KEY}"  # Environment variable reference
+    model: "claude-3-opus-20240229"
+
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    model: "gpt-4-turbo-preview"
+
+# Maximum number of attempts to fix the script allowed before restarting from step 2
+max_fixes: 10
+
+# Maximum number of attempts to generate a working script before giving up completely
+max_attempts: 3
+
+# Timeout for script execution during testing (in seconds)
+timeout: 30
+
+# Additional prompt to provide to the LLM
+additional_prompt: |
+  Use ANSI color codes to make the output more readable.
+```
+
+### Environment Variables
+
+You can use environment variables in the configuration file using the `${VAR_NAME}` syntax. This is particularly useful for API keys and sensitive information.
+
+### Configuration Precedence
+
+1. Command line flags (highest priority)
+2. Environment variables
+3. Configuration file
+4. Default values (lowest priority)
+
+### Command Line Flags
+
+You can override configuration settings using command line flags:
+
+```shell
+llmscript --llm.provider=claude --timeout=10 script.txt
+```
