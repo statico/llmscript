@@ -101,13 +101,13 @@ func main() {
 }
 
 func runScript(cfg *config.Config, scriptFile string) error {
-	log.Info("Reading script file:", scriptFile)
+	log.Info("Reading script file: %s", scriptFile)
 	content, err := os.ReadFile(scriptFile)
 	if err != nil {
 		return fmt.Errorf("failed to read script file: %w", err)
 	}
 
-	log.Info("Creating LLM provider:", cfg.LLM.Provider)
+	log.Info("Creating LLM provider: %s", cfg.LLM.Provider)
 	provider, err := llm.NewProvider(cfg.LLM.Provider, cfg.LLM)
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
