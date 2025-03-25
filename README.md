@@ -1,6 +1,8 @@
 # llmscript
 
-llmscript lets you write shell scripts in natural language.
+llmscript is a shell script that uses a large language model (LLM) to build and test shell programs so that you can write scripts in natural language instead of bash or other shell scripting languages.
+
+You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [Claude](https://www.anthropic.com/claude).
 
 ## Example
 
@@ -13,7 +15,7 @@ For every PNG file in `input`:
   - Run pngcrush
 ```
 
-Running it would look like this:
+Running it with a directory of PNG files would look like this:
 
 ```shell
 $ ./convert-pngs
@@ -33,3 +35,13 @@ Done!
 # TODO
 
 </details>
+
+## How it works
+
+Given a script description written in natural language, llmscript works by:
+
+1. Building a testing plan
+2. Writing a script and testing it against the plan
+3. Making changes to the script until it passes the tests, or restarting from step 2 if there are too many mistakes
+4. Checksumming the description and caching the test plan and script for future executions
+5. Running the script
