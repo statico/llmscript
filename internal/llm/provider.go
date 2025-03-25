@@ -246,7 +246,7 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 			} `yaml:"claude"`
 		})
 		if !ok || cfg.Claude.APIKey == "" {
-			return nil, fmt.Errorf("Claude API key is required")
+			return nil, fmt.Errorf("a Claude API key is required")
 		}
 		return NewClaudeProvider(ClaudeConfig{
 			APIKey: cfg.Claude.APIKey,
