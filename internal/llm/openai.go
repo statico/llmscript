@@ -45,11 +45,19 @@ func (p *OpenAIProvider) GenerateTests(ctx context.Context, description string) 
 
 	log.Debug("Raw LLM response:\n%s", response)
 
+	// Try to extract JSON from the response
+	jsonStart := strings.Index(response, "{")
+	jsonEnd := strings.LastIndex(response, "}")
+	if jsonStart == -1 || jsonEnd == -1 || jsonEnd <= jsonStart {
+		return nil, fmt.Errorf("failed to find valid JSON in response: %s", response)
+	}
+	jsonStr := response[jsonStart : jsonEnd+1]
+
 	var result struct {
 		Tests []Test `json:"tests"`
 	}
-	if err := json.Unmarshal([]byte(response), &result); err != nil {
-		return nil, fmt.Errorf("failed to parse test cases: %w", err)
+	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
+		return nil, fmt.Errorf("failed to parse test cases: %w\nRaw response:\n%s", err, response)
 	}
 	return result.Tests, nil
 }

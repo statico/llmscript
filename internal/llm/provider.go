@@ -129,7 +129,22 @@ Platform Information:
 </requirements>
 
 <output_format>
-Output the test cases in JSON format with the following structure:
+IMPORTANT: You MUST output ONLY a JSON object with NO additional text, explanations, or markdown formatting.
+DO NOT include any text before or after the JSON.
+DO NOT explain your test cases.
+DO NOT wrap the JSON in code blocks.
+Use ONLY double quotes for strings in JSON, not single quotes.
+Use ONLY valid JSON values:
+- Strings must be in double quotes
+- Numbers must be integers or floats
+- Booleans must be true or false
+- Arrays must be in square brackets
+- Objects must be in curly braces
+- null is allowed
+DO NOT use any programming language expressions or operations (like string multiplication).
+
+The response should be a single JSON object with this exact structure:
+
 {
   "tests": [
     {
