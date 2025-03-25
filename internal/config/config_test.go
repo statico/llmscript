@@ -140,6 +140,10 @@ additional_prompt: "Test prompt"
 		cfg.LLM.Provider = "ollama"
 		cfg.LLM.Ollama.Model = "llama2"
 		cfg.LLM.Ollama.Host = "http://localhost:11434"
+		cfg.LLM.Claude.APIKey = ""
+		cfg.LLM.Claude.Model = ""
+		cfg.LLM.OpenAI.APIKey = ""
+		cfg.LLM.OpenAI.Model = ""
 		cfg.MaxFixes = 5
 		cfg.MaxAttempts = 2
 		cfg.Timeout = 15 * time.Second

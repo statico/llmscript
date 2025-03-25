@@ -60,7 +60,7 @@ echo "Hello, World!"`, nil
 	}
 
 	// Create a new pipeline
-	pipeline, err := NewPipeline(mockLLM, 1, 1, 5*time.Second, tmpDir)
+	pipeline, err := NewPipeline(mockLLM, 1, 1, 5*time.Second, tmpDir, false)
 	require.NoError(t, err)
 
 	// Test script generation

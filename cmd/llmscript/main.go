@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/statico/llmscript/internal/config"
 	"github.com/statico/llmscript/internal/llm"
@@ -13,8 +14,29 @@ import (
 	"github.com/statico/llmscript/internal/script"
 )
 
+var (
+	writeConfig  = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
+	verbose      = flag.Bool("verbose", false, "Enable verbose output")
+	debug        = flag.Bool("debug", false, "Enable debug output")
+	showProgress = flag.Bool("progress", true, "Show progress indicators")
+	timeout      = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
+	maxFixes     = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script")
+	maxAttempts  = flag.Int("max-attempts", 3, "Maximum number of attempts to generate a working script")
+	llmProvider  = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
+	llmModel     = flag.String("llm.model", "", "LLM model to use (overrides config)")
+	extraPrompt  = flag.String("prompt", "", "Additional prompt to provide to the LLM")
+)
+
 func main() {
-	writeConfig := flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <script-file>\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Flags:\n")
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nExamples:\n")
+		fmt.Fprintf(os.Stderr, "  %s script.txt\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --llm.provider=claude --timeout=10 script.txt\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s --write-config\n", os.Args[0])
+	}
 	flag.Parse()
 
 	if *writeConfig {
@@ -31,8 +53,45 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
+	// Override config with command line flags
+	if *llmProvider != "" {
+		cfg.LLM.Provider = *llmProvider
+	}
+	if *llmModel != "" {
+		switch cfg.LLM.Provider {
+		case "ollama":
+			cfg.LLM.Ollama.Model = *llmModel
+		case "claude":
+			cfg.LLM.Claude.Model = *llmModel
+		case "openai":
+			cfg.LLM.OpenAI.Model = *llmModel
+		}
+	}
+	if *timeout != 0 {
+		cfg.Timeout = *timeout
+	}
+	if *maxFixes != 0 {
+		cfg.MaxFixes = *maxFixes
+	}
+	if *maxAttempts != 0 {
+		cfg.MaxAttempts = *maxAttempts
+	}
+	if *extraPrompt != "" {
+		cfg.ExtraPrompt = *extraPrompt
+	}
+
+	// Set up logging
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	} else if *verbose {
+		log.SetLevel(log.InfoLevel)
+	} else {
+		log.SetLevel(log.WarnLevel)
+	}
+
 	if len(flag.Args()) == 0 {
-		log.Fatal("No script file provided")
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	scriptFile := flag.Args()[0]
@@ -42,48 +101,47 @@ func main() {
 }
 
 func runScript(cfg *config.Config, scriptFile string) error {
-	// Read script file
+	log.Info("Reading script file:", scriptFile)
 	content, err := os.ReadFile(scriptFile)
 	if err != nil {
 		return fmt.Errorf("failed to read script file: %w", err)
 	}
 
-	// Create LLM provider
+	log.Info("Creating LLM provider:", cfg.LLM.Provider)
 	provider, err := llm.NewProvider(cfg.LLM.Provider, cfg.LLM)
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
 	}
 
-	// Create work directory
+	log.Info("Creating work directory")
 	workDir, err := os.MkdirTemp("", "llmscript-*")
 	if err != nil {
 		return fmt.Errorf("failed to create work directory: %w", err)
 	}
 	defer os.RemoveAll(workDir)
 
-	// Create pipeline
-	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir)
+	log.Info("Creating pipeline")
+	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *showProgress)
 	if err != nil {
 		return fmt.Errorf("failed to create pipeline: %w", err)
 	}
 
-	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
 
-	// Generate and test script
+	log.Info("Generating and testing script")
 	script, err := pipeline.GenerateAndTest(ctx, string(content))
 	if err != nil {
 		return fmt.Errorf("failed to generate working script: %w", err)
 	}
 
-	// Write script to output file
 	outputFile := scriptFile + ".sh"
+	log.Info("Writing output script:", outputFile)
 	if err := os.WriteFile(outputFile, []byte(script), 0755); err != nil {
 		return fmt.Errorf("failed to write output script: %w", err)
 	}
 
-	// Execute the script
+	log.Info("Executing script")
 	cmd := exec.Command("bash", outputFile)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
