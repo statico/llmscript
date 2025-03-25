@@ -104,14 +104,16 @@ func LoadConfig() (*Config, error) {
 func WriteConfig(config *Config) error {
 	configDir := os.Getenv("XDG_CONFIG_HOME")
 	if configDir == "" {
-		var err error
-		configDir, err = os.UserConfigDir()
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("failed to get config dir: %w", err)
+			return fmt.Errorf("failed to get home directory: %w", err)
 		}
+		configDir = filepath.Join(homeDir, ".config")
 	}
+	fmt.Printf("Config directory: %s\n", configDir)
 
 	llmscriptDir := filepath.Join(configDir, "llmscript")
+	fmt.Printf("Creating directory: %s\n", llmscriptDir)
 	if err := os.MkdirAll(llmscriptDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -125,6 +127,7 @@ func WriteConfig(config *Config) error {
 	encoder.Close()
 
 	configPath := filepath.Join(llmscriptDir, "config.yaml")
+	fmt.Printf("Writing config to: %s\n", configPath)
 	if err := os.WriteFile(configPath, []byte(buf.String()), 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
