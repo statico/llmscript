@@ -180,6 +180,18 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 			return nil, fmt.Errorf("invalid config type for Ollama provider")
 		}
 		return NewOllamaProvider(ollamaConfig)
+	case "claude":
+		claudeConfig, ok := config.(ClaudeConfig)
+		if !ok {
+			return nil, fmt.Errorf("invalid config type for Claude provider")
+		}
+		return NewClaudeProvider(claudeConfig)
+	case "openai":
+		openaiConfig, ok := config.(OpenAIConfig)
+		if !ok {
+			return nil, fmt.Errorf("invalid config type for OpenAI provider")
+		}
+		return NewOpenAIProvider(openaiConfig)
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", name)
 	}
