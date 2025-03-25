@@ -14,11 +14,11 @@ const (
 )
 
 func Info(format string, args ...interface{}) {
-	fmt.Printf(blue+"INFO: "+reset+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, blue+"INFO: "+reset+format+"\n", args...)
 }
 
 func Warn(format string, args ...interface{}) {
-	fmt.Printf(yellow+"WARN: "+reset+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, yellow+"WARN: "+reset+format+"\n", args...)
 }
 
 func Error(format string, args ...interface{}) {
@@ -26,7 +26,7 @@ func Error(format string, args ...interface{}) {
 }
 
 func Success(format string, args ...interface{}) {
-	fmt.Printf(green+"SUCCESS: "+reset+format+"\n", args...)
+	fmt.Fprintf(os.Stderr, green+"SUCCESS: "+reset+format+"\n", args...)
 }
 
 func Fatal(format string, args ...interface{}) {
