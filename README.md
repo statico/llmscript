@@ -7,6 +7,9 @@ llmscript is a shell script that uses a large language model (LLM) to build and 
 You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [Claude](https://www.anthropic.com/claude).
 
 > [!NOTE]
+> Does this actually work? Yeah, somewhat! Could it create scripts that erase your drive? Maybe! Good luck!
+
+> [!NOTE]
 > Most of this project was written by an LLM, so it's not perfect. I can't actually claim that I "wrote" any of the source code.
 
 ## Example
