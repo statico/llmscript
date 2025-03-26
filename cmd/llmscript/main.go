@@ -19,7 +19,7 @@ var (
 	writeConfig = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
 	verbose     = flag.Bool("verbose", false, "Enable verbose output (includes debug messages)")
 	timeout     = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
-	maxFixes    = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script")
+	maxFixes    = flag.Int("max-fixes", 3, "Maximum number of attempts to fix the script")
 	maxAttempts = flag.Int("max-attempts", 3, "Maximum number of attempts to generate a working script")
 	llmProvider = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
 	llmModel    = flag.String("llm.model", "", "LLM model to use (overrides config)")

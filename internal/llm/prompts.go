@@ -20,7 +20,7 @@ Target platform Information:
 - Use standard shell commands (sh/bash) with POSIX compliance where possible
 - Only use argument and environment variables if the description requires it
 - Follow shell scripting best practices
-- Ensure cross-platform compatibility
+- Ensure cross-platform compatibility and only use portable shell commands
 - Use proper exit codes for different scenarios
 - Keep the script short, concise, and simple
 </requirements>
@@ -70,7 +70,7 @@ Target platform Information:
 - Return exit code 0 if all tests pass, or 1 if any test fails
 - Set appropriate timeouts for any long-running tests
 - Handle environment variables and cleanup
-- Ensure platform compatibility
+- Ensure platform compatibility and only use portable shell commands
 - Keep the script short, concise, and simple
 </requirements>
 

@@ -112,6 +112,7 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 					return "", fmt.Errorf("failed to fix scripts: %w", err)
 				}
 				log.Debug("Scripts fixed")
+				log.Info("New script:\n%s", scripts.MainScript)
 			}
 		}
 	}
