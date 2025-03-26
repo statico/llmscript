@@ -11,20 +11,20 @@ Create a shell script that accomplishes the following task:
 %s
 </description>
 
-<platform>
-Platform Information:
+<target_platform>
+Target platform Information:
 %s
-</platform>
+</target_platform>
 
 <requirements>
-1. Use standard shell commands (sh/bash) with POSIX compliance where possible
-2. Implement comprehensive error handling with descriptive messages
-3. Use clear, descriptive variable names following shell naming conventions
-4. Add concise, meaningful comments for complex logic
-5. Follow shell scripting best practices and security guidelines
-6. Ensure cross-platform compatibility
-7. Include input validation where appropriate
-8. Use proper exit codes for different scenarios
+- Use standard shell commands (sh/bash) with POSIX compliance where possible
+- Implement comprehensive error handling with descriptive messages
+- Use clear, descriptive variable names following shell naming conventions
+- Add concise, meaningful comments for complex logic
+- Follow shell scripting best practices and security guidelines
+- Ensure cross-platform compatibility
+- Include input validation where appropriate
+- Use proper exit codes for different scenarios
 </requirements>
 
 <output_format>
@@ -52,28 +52,28 @@ Create a test script for the following script:
 %s
 </description>
 
-<platform>
-Platform Information:
+<target_platform>
+Target platform Information:
 %s
-</platform>
+</target_platform>
 
 <requirements>
-1. Create a test script that runs multiple test cases
-2. Each test case should:
+- Create a test script that runs multiple test cases
+- Each test case should:
    - Set up the test environment
    - Run the main script with test inputs
    - Verify the output matches expectations
    - Clean up after the test
-3. Include tests for:
+- Include tests for:
    - Success scenarios
    - Error cases
    - Edge cases
    - Boundary conditions
-4. Use clear test case names and descriptions
-5. Implement proper error handling and reporting
-6. Set appropriate timeouts for long-running tests
-7. Handle environment variables and cleanup
-8. Ensure platform compatibility
+- Use clear test case names and descriptions
+- Implement proper error handling and reporting
+- Set appropriate timeouts for long-running tests
+- Handle environment variables and cleanup
+- Ensure platform compatibility
 </requirements>
 
 <output_format>
@@ -101,20 +101,20 @@ Fix the following script based on the test failures:
 %s
 </test_failures>
 
-<platform>
-Platform Information:
+<target_platform>
+Target platform Information:
 %s
-</platform>
+</target_platform>
 
 <requirements>
-1. Fix all test failures while maintaining existing functionality
-2. Improve error handling and validation
-3. Enhance code readability and maintainability
-4. Follow shell scripting best practices
-5. Ensure cross-platform compatibility
-6. Add appropriate logging for debugging
-7. Implement proper cleanup in error cases
-8. Optimize performance where possible
+- Fix all test failures while maintaining existing functionality
+- Improve error handling and validation
+- Enhance code readability and maintainability
+- Follow shell scripting best practices
+- Ensure cross-platform compatibility
+- Add appropriate logging for debugging
+- Implement proper cleanup in error cases
+- Optimize performance where possible
 </requirements>
 
 <output_format>
