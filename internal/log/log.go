@@ -112,5 +112,7 @@ func Success(format string, args ...interface{}) {
 		spinner.Stop()
 		fmt.Fprintf(os.Stderr, "\n")
 	}
-	fmt.Fprintf(os.Stderr, green+"✓ "+reset+format+"\n", args...)
+	if isTTY() || getLevel() == DebugLevel {
+		fmt.Fprintf(os.Stderr, green+"✓ "+reset+format+"\n", args...)
+	}
 }
