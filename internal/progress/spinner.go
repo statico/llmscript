@@ -82,7 +82,10 @@ func (s *Spinner) start() {
 			signal.Stop(s.sigChan)
 			p, err := os.FindProcess(os.Getpid())
 			if err == nil {
-				p.Signal(sig)
+				if err := p.Signal(sig); err != nil {
+					// Log the error but continue with the shutdown
+					fmt.Fprintf(os.Stderr, "Error sending signal: %v\n", err)
+				}
 			}
 			return
 		}
