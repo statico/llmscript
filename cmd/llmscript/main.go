@@ -16,16 +16,15 @@ import (
 )
 
 var (
-	writeConfig  = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
-	verbose      = flag.Bool("verbose", false, "Enable verbose output (includes debug messages)")
-	showProgress = flag.Bool("progress", true, "Show progress indicators")
-	timeout      = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
-	maxFixes     = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script")
-	maxAttempts  = flag.Int("max-attempts", 3, "Maximum number of attempts to generate a working script")
-	llmProvider  = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
-	llmModel     = flag.String("llm.model", "", "LLM model to use (overrides config)")
-	extraPrompt  = flag.String("prompt", "", "Additional prompt to provide to the LLM")
-	noCache      = flag.Bool("no-cache", false, "Skip using the cache for script generation")
+	writeConfig = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
+	verbose     = flag.Bool("verbose", false, "Enable verbose output (includes debug messages)")
+	timeout     = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
+	maxFixes    = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script")
+	maxAttempts = flag.Int("max-attempts", 3, "Maximum number of attempts to generate a working script")
+	llmProvider = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
+	llmModel    = flag.String("llm.model", "", "LLM model to use (overrides config)")
+	extraPrompt = flag.String("prompt", "", "Additional prompt to provide to the LLM")
+	noCache     = flag.Bool("no-cache", false, "Skip using the cache for script generation")
 )
 
 func main() {
@@ -127,7 +126,7 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Info("Creating pipeline")
-	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *showProgress, *noCache)
+	pipeline, err := script.NewPipeline(provider, cfg.MaxFixes, cfg.MaxAttempts, cfg.Timeout, workDir, *noCache)
 	if err != nil {
 		return fmt.Errorf("failed to create pipeline: %w", err)
 	}
