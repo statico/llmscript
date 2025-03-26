@@ -172,7 +172,6 @@ func runScript(cfg *config.Config, scriptFile string) error {
 
 	// Clear the spinner line before printing success message
 	log.GetSpinner().Clear()
-	log.Success("Script generated successfully!")
 
 	// If --print flag is set, just print the script and exit
 	if *printOnly {
