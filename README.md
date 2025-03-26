@@ -52,6 +52,11 @@ go install github.com/statico/llmscript@latest
 
 By default, llmscript will use Ollama with the `llama3.2` model. You can configure this by creating a config file with the `llmscript --write-config` command to create a config file in `~/.config/llmscript/config.yaml` which you can edit. You can also use command-line args (see below).
 
+> [!NOTE]
+> Spooked by running LLM-generated shell scripts? Good for you! Consider running this via Docker:
+>
+> `docker run --network host -it -v "$(pwd):/data" -w /data ghcr.io/statico/llmscript examples/hello-world`
+
 ## How it works
 
 Given a script description written in natural language, llmscript works by:
