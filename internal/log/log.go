@@ -74,7 +74,7 @@ func Info(format string, args ...interface{}) {
 	if getLevel() <= InfoLevel {
 		if getLevel() == DebugLevel {
 			fmt.Fprintf(os.Stderr, blue+"INFO: "+reset+format+"\n", args...)
-		} else {
+		} else if isTTY() {
 			updateSpinner(format, args...)
 		}
 	}
