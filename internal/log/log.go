@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/statico/llmscript/internal/progress"
+	"golang.org/x/term"
 )
 
 const (
@@ -44,7 +45,16 @@ func getLevel() Level {
 	return level
 }
 
+func isTTY() bool {
+	return term.IsTerminal(int(os.Stderr.Fd()))
+}
+
 func updateSpinner(format string, args ...interface{}) {
+	if !isTTY() {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+		return
+	}
+
 	spinnerMu.Lock()
 	defer spinnerMu.Unlock()
 

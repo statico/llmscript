@@ -1,8 +1,15 @@
 module github.com/statico/llmscript
 
-go 1.22.1
+go 1.23.0
+
+toolchain go1.24.1
 
 require gopkg.in/yaml.v3 v3.0.1
+
+require (
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
