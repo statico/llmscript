@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -151,5 +152,25 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Success("Script generated successfully!")
+
+	// Get any additional arguments after the script file
+	scriptArgs := flag.Args()[1:]
+
+	// Execute the script with any additional arguments
+	log.Info("Executing script with arguments: %v", scriptArgs)
+	cmd := exec.Command(scriptPath, scriptArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	// Run the command and exit with its status code
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			os.Exit(exitErr.ExitCode())
+		}
+		// If it's not an exit error, something else went wrong
+		return fmt.Errorf("script execution failed: %w", err)
+	}
+
 	return nil
 }
