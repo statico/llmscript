@@ -101,10 +101,19 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 		return NewOllamaProvider(ollamaConfig)
 	case "claude":
 		cfg, ok := config.(struct {
+			Provider string `yaml:"provider"`
+			Ollama   struct {
+				Model string `yaml:"model"`
+				Host  string `yaml:"host"`
+			} `yaml:"ollama"`
 			Claude struct {
 				APIKey string `yaml:"api_key"`
 				Model  string `yaml:"model"`
 			} `yaml:"claude"`
+			OpenAI struct {
+				APIKey string `yaml:"api_key"`
+				Model  string `yaml:"model"`
+			} `yaml:"openai"`
 		})
 		if !ok || cfg.Claude.APIKey == "" {
 			return nil, fmt.Errorf("a Claude API key is required")

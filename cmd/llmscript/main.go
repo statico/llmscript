@@ -53,6 +53,11 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
+	log.Debug("Loaded config: provider=%s, has_claude_api_key=%v, claude_model=%s",
+		cfg.LLM.Provider,
+		cfg.LLM.Claude.APIKey != "",
+		cfg.LLM.Claude.Model)
+
 	// Override config with command line flags
 	if *llmProvider != "" {
 		cfg.LLM.Provider = *llmProvider
@@ -106,7 +111,26 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Info("Creating LLM provider: %s", cfg.LLM.Provider)
-	provider, err := llm.NewProvider(cfg.LLM.Provider, cfg.LLM)
+	provider, err := llm.NewProvider(cfg.LLM.Provider, struct {
+		Provider string `yaml:"provider"`
+		Ollama   struct {
+			Model string `yaml:"model"`
+			Host  string `yaml:"host"`
+		} `yaml:"ollama"`
+		Claude struct {
+			APIKey string `yaml:"api_key"`
+			Model  string `yaml:"model"`
+		} `yaml:"claude"`
+		OpenAI struct {
+			APIKey string `yaml:"api_key"`
+			Model  string `yaml:"model"`
+		} `yaml:"openai"`
+	}{
+		Provider: cfg.LLM.Provider,
+		Ollama:   cfg.LLM.Ollama,
+		Claude:   cfg.LLM.Claude,
+		OpenAI:   cfg.LLM.OpenAI,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
 	}
