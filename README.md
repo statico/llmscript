@@ -59,6 +59,8 @@ By default, llmscript will use Ollama with the `llama3.2` model. You can configu
 
 ## How it works
 
+Want to see it all in action? Run `llmscript --verbose examples/hello-world`
+
 Given a script description written in natural language, llmscript works by:
 
 1. Generating a feature script that implements the functionality
