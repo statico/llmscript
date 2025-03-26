@@ -170,7 +170,7 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	// Clear the spinner line before printing success message
-	pipeline.Spinner.Clear()
+	log.GetSpinner().Clear()
 	log.Success("Script generated successfully!")
 
 	// Get any additional arguments after the script file

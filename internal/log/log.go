@@ -49,6 +49,16 @@ func isTTY() bool {
 	return term.IsTerminal(int(os.Stderr.Fd()))
 }
 
+// GetSpinner returns the singleton spinner instance, creating it if it doesn't exist
+func GetSpinner() *progress.Spinner {
+	spinnerMu.Lock()
+	defer spinnerMu.Unlock()
+	if spinner == nil {
+		spinner = progress.NewSpinner("")
+	}
+	return spinner
+}
+
 func updateSpinner(format string, args ...interface{}) {
 	if !isTTY() {
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
