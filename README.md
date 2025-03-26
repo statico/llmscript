@@ -14,7 +14,7 @@ You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [C
 
 ## Example
 
-```sh
+```
 #!/usr/bin/env llmscript
 
 Create an output directory, `output`.
@@ -25,7 +25,7 @@ For every PNG file in `input`:
 
 Running it with a directory of PNG files would look like this:
 
-```shell
+```
 $ ./convert-pngs
 Creating output directory
 Convering input/1.png
@@ -37,38 +37,50 @@ Running pngcrush on output/3.png
 Done!
 ```
 
-<details>
-<summary>Show intermediate steps</summary>
+## Prerequisites
 
-# TODO
+- [Go](https://go.dev/) (1.22 or later)
+- One of:
+  - [Ollama](https://ollama.com/) running locally
+  - A [Claude](https://www.anthropic.com/claude) API key
+  - An [OpenAI](https://openai.com/) API key
 
-</details>
+## Installation
+
+```
+go install github.com/statico/llmscript@latest
+```
+
+By default, llmscript will use Ollama with the `llama3.2` model. You can configure this by creating a config file with the `llmscript --write-config` command to create a config file in `~/.config/llmscript/config.yaml` which you can edit. You can also use command-line args (see below).
 
 ## How it works
 
 Given a script description written in natural language, llmscript works by:
 
-1. Generating two scripts:
-   - The feature script that implements the functionality
-   - A test script that verifies the feature script works correctly
-2. Making both scripts executable
-3. Running the test script, which will:
-   - Set up any necessary test environment
-   - Run the feature script
-   - Verify the output and state
-4. If the test fails, the LLM will fix both scripts and try again
-5. Once tests pass, the scripts are cached for future use (in `~/.config/llmscript/cache`)
+1. Generating a feature script that implements the functionality
+2. Generating a test script that verifies the feature script works correctly
+3. Running the test script to verify the feature script works correctly, fixing the feature script if necessary, possibly going back to step 1 if the test script fails too many times
+4. Caching the scripts for future use
+5. Running the feature script with any additional arguments you provide
 
-For example, if you write "Print hello world", llmscript might generate:
+For example, given a simple hello world script:
+
+```
+#!/usr/bin/env llmscript
+
+Print hello world
+```
+
+llmscript might generate the following feature script:
 
 ```bash
-# Feature script (script.sh)
 #!/bin/bash
 echo "Hello, world!"
 ```
 
+...and the following test script to test it:
+
 ```bash
-# Test script (test.sh)
 #!/bin/bash
 [ "$(./script.sh)" = "Hello, world!" ] || exit 1
 ```
