@@ -3,6 +3,9 @@ package log
 import (
 	"fmt"
 	"os"
+	"sync"
+
+	"github.com/statico/llmscript/internal/progress"
 )
 
 const (
@@ -13,56 +16,91 @@ const (
 	reset  = "\033[0m"
 )
 
-type LogLevel int
+var (
+	level     = InfoLevel
+	levelLock sync.RWMutex
+	spinner   *progress.Spinner
+	spinnerMu sync.Mutex
+)
+
+type Level int
 
 const (
-	DebugLevel LogLevel = iota
+	DebugLevel Level = iota
 	InfoLevel
 	WarnLevel
 	ErrorLevel
 )
 
-var currentLevel = InfoLevel
-
-func SetLevel(level LogLevel) {
-	currentLevel = level
+func SetLevel(l Level) {
+	levelLock.Lock()
+	defer levelLock.Unlock()
+	level = l
 }
 
-func shouldLog(level LogLevel) bool {
-	return level >= currentLevel
+func getLevel() Level {
+	levelLock.RLock()
+	defer levelLock.RUnlock()
+	return level
+}
+
+func updateSpinner(format string, args ...interface{}) {
+	spinnerMu.Lock()
+	defer spinnerMu.Unlock()
+
+	if spinner == nil {
+		spinner = progress.NewSpinner(fmt.Sprintf(format, args...))
+	} else {
+		spinner.SetMessage(fmt.Sprintf(format, args...))
+	}
+	fmt.Fprintf(os.Stderr, "\r%s", spinner)
+}
+
+func Spinner(format string, args ...interface{}) {
+	updateSpinner(format, args...)
+}
+
+func Info(format string, args ...interface{}) {
+	if getLevel() <= InfoLevel {
+		if getLevel() == DebugLevel {
+			fmt.Fprintf(os.Stderr, blue+"INFO: "+reset+format+"\n", args...)
+		} else {
+			updateSpinner(format, args...)
+		}
+	}
 }
 
 func Debug(format string, args ...interface{}) {
-	if shouldLog(DebugLevel) {
+	if getLevel() <= DebugLevel {
 		fmt.Fprintf(os.Stderr, blue+"DEBUG: "+reset+format+"\n", args...)
 	}
 }
 
-func Info(format string, args ...interface{}) {
-	if shouldLog(InfoLevel) {
-		fmt.Fprintf(os.Stderr, blue+"INFO: "+reset+format+"\n", args...)
-	}
-}
-
 func Warn(format string, args ...interface{}) {
-	if shouldLog(WarnLevel) {
+	if getLevel() <= WarnLevel {
 		fmt.Fprintf(os.Stderr, yellow+"WARN: "+reset+format+"\n", args...)
 	}
 }
 
 func Error(format string, args ...interface{}) {
-	if shouldLog(ErrorLevel) {
+	if getLevel() <= ErrorLevel {
 		fmt.Fprintf(os.Stderr, red+"ERROR: "+reset+format+"\n", args...)
 	}
 }
 
-func Success(format string, args ...interface{}) {
-	if shouldLog(InfoLevel) {
-		fmt.Fprintf(os.Stderr, green+"SUCCESS: "+reset+format+"\n", args...)
+func Fatal(format string, args ...interface{}) {
+	if spinner != nil {
+		spinner.Stop()
+		fmt.Fprintf(os.Stderr, "\n")
 	}
+	fmt.Fprintf(os.Stderr, red+"FATAL: "+reset+format+"\n", args...)
+	os.Exit(1)
 }
 
-func Fatal(format string, args ...interface{}) {
-	Error(format, args...)
-	os.Exit(1)
+func Success(format string, args ...interface{}) {
+	if spinner != nil {
+		spinner.Stop()
+		fmt.Fprintf(os.Stderr, "\n")
+	}
+	fmt.Fprintf(os.Stderr, green+"✓ "+reset+format+"\n", args...)
 }
