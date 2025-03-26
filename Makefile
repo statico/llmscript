@@ -19,10 +19,10 @@ lint:
 
 example1:
 	make
-	./bin/llmscript --debug --no-cache examples/hello-world
+	./bin/llmscript --verbose --no-cache examples/hello-world
 
 example2:
 	make
-	./bin/llmscript --debug --no-cache examples/product-downloader
+	./bin/llmscript --verbose --no-cache examples/product-downloader
 
 .DEFAULT_GOAL := build

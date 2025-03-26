@@ -17,8 +17,7 @@ import (
 
 var (
 	writeConfig  = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
-	verbose      = flag.Bool("verbose", false, "Enable verbose output")
-	debug        = flag.Bool("debug", false, "Enable debug output")
+	verbose      = flag.Bool("verbose", false, "Enable verbose output (includes debug messages)")
 	showProgress = flag.Bool("progress", true, "Show progress indicators")
 	timeout      = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
 	maxFixes     = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script")
@@ -83,11 +82,8 @@ func main() {
 	}
 
 	// Set up logging
-	if *debug {
+	if *verbose {
 		log.SetLevel(log.DebugLevel)
-		*verbose = true // Enable verbose mode when debug is enabled
-	} else if *verbose {
-		log.SetLevel(log.InfoLevel)
 	} else {
 		log.SetLevel(log.WarnLevel)
 	}
