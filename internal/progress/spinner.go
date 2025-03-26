@@ -61,11 +61,20 @@ func (s *Spinner) start() {
 		if !s.stopped.IsZero() {
 			return
 		}
+		fmt.Printf("\r%s", s.String())
 	}
 }
 
 func (s *Spinner) Stop() {
 	if s.stopped.IsZero() {
 		s.stopped = time.Now()
+		if s.ticker != nil {
+			s.ticker.Stop()
+		}
 	}
+}
+
+// Clear clears the current line by printing a carriage return and spaces
+func (s *Spinner) Clear() {
+	fmt.Printf("\r%s\r", strings.Repeat(" ", 100))
 }

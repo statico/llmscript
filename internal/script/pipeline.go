@@ -10,6 +10,7 @@ import (
 
 	"github.com/statico/llmscript/internal/llm"
 	"github.com/statico/llmscript/internal/log"
+	"github.com/statico/llmscript/internal/progress"
 )
 
 // Test represents a test case for a script
@@ -27,6 +28,7 @@ type Pipeline struct {
 	workDir     string
 	cache       *Cache
 	noCache     bool
+	Spinner     *progress.Spinner
 }
 
 // NewPipeline creates a new script generation pipeline
@@ -44,6 +46,8 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 		}
 	}
 
+	spinner := progress.NewSpinner("Initializing...")
+
 	return &Pipeline{
 		llm:         llm,
 		maxFixes:    maxFixes,
@@ -52,6 +56,7 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 		workDir:     workDir,
 		cache:       cache,
 		noCache:     noCache,
+		Spinner:     spinner,
 	}, nil
 }
 
@@ -59,10 +64,12 @@ func NewPipeline(llm llm.Provider, maxFixes, maxAttempts int, timeout time.Durat
 func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (string, error) {
 	// Check cache first if enabled
 	if !p.noCache && p.cache != nil {
+		p.Spinner.SetMessage("Checking cache...")
 		if scripts, err := p.cache.Get(description); err == nil && scripts.MainScript != "" {
-			log.Info("Found cached scripts, verifying...")
+			p.Spinner.SetMessage("Found cached scripts, verifying...")
 			// Run test script to verify
 			if err := p.runTestScript(ctx, scripts); err == nil {
+				p.Spinner.Stop()
 				log.Success("Cached scripts verified successfully")
 				return scripts.MainScript, nil
 			}
@@ -71,9 +78,10 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	}
 
 	// Generate initial scripts
-	log.Info("Generating initial scripts...")
+	p.Spinner.SetMessage("Generating initial scripts...")
 	scripts, err := p.llm.GenerateScripts(ctx, description)
 	if err != nil {
+		p.Spinner.Stop()
 		return "", fmt.Errorf("failed to generate initial scripts: %w", err)
 	}
 	log.Debug("Initial scripts generated")
@@ -81,9 +89,10 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	// Run test script and fix failures
 	for attempt := 0; attempt < p.maxAttempts; attempt++ {
 		if attempt > 0 {
-			log.Info("Attempt %d/%d: Generating new scripts...", attempt+1, p.maxAttempts)
+			p.Spinner.SetMessage(fmt.Sprintf("Attempt %d/%d: Generating new scripts...", attempt+1, p.maxAttempts))
 			scripts, err = p.llm.GenerateScripts(ctx, description)
 			if err != nil {
+				p.Spinner.Stop()
 				return "", fmt.Errorf("failed to generate new scripts: %w", err)
 			}
 			log.Debug("New scripts generated")
@@ -92,21 +101,25 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 		// Try to fix any failures
 		for fix := 0; fix < p.maxFixes; fix++ {
 			// Run test script
+			p.Spinner.SetMessage(fmt.Sprintf("Testing script (attempt %d/%d)...", attempt+1, p.maxAttempts))
 			err := p.runTestScript(ctx, scripts)
 			if err == nil {
 				// Cache successful scripts if caching is enabled
 				if !p.noCache && p.cache != nil {
+					p.Spinner.SetMessage("Caching successful scripts...")
 					if err := p.cache.Set(description, scripts); err != nil {
 						log.Warn("Failed to cache successful scripts: %v", err)
 					}
 				}
+				p.Spinner.Stop()
 				return scripts.MainScript, nil
 			}
 
 			if fix < p.maxFixes-1 { // Don't try to fix on the last iteration
-				log.Info("Fix attempt %d/%d...", fix+1, p.maxFixes)
+				p.Spinner.SetMessage(fmt.Sprintf("Fix attempt %d/%d...", fix+1, p.maxFixes))
 				scripts, err = p.llm.FixScripts(ctx, scripts, err.Error())
 				if err != nil {
+					p.Spinner.Stop()
 					return "", fmt.Errorf("failed to fix scripts: %w", err)
 				}
 				log.Debug("Scripts fixed")
@@ -114,6 +127,7 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 		}
 	}
 
+	p.Spinner.Stop()
 	return "", fmt.Errorf("failed to generate working scripts after %d attempts", p.maxAttempts)
 }
 

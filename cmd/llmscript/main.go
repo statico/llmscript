@@ -150,6 +150,8 @@ func runScript(cfg *config.Config, scriptFile string) error {
 		return fmt.Errorf("failed to write script: %w", err)
 	}
 
+	// Clear the spinner line before printing success message
+	pipeline.Spinner.Clear()
 	log.Success("Script generated successfully!")
 
 	// Get any additional arguments after the script file
