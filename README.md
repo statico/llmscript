@@ -50,6 +50,20 @@ Done!
 go install github.com/statico/llmscript@latest
 ```
 
+## Usage
+
+Create a script file like the above example, or check out the [examples](examples) directory for more. You can use a shebang like:
+
+```
+#!/usr/bin/env llmscript
+```
+
+or run it directly like:
+
+```
+$ llmscript hello-world
+```
+
 By default, llmscript will use Ollama with the `llama3.2` model. You can configure this by creating a config file with the `llmscript --write-config` command to create a config file in `~/.config/llmscript/config.yaml` which you can edit. You can also use command-line args (see below).
 
 > [!NOTE]
