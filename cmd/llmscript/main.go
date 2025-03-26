@@ -184,7 +184,6 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	scriptArgs := flag.Args()[1:]
 
 	// Execute the script with any additional arguments
-	log.Info("Executing script with arguments: %v", scriptArgs)
 	cmd := exec.Command(scriptPath, scriptArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
