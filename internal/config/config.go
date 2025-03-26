@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	customlog "github.com/statico/llmscript/internal/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -100,7 +101,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	configPath := filepath.Join(configDir, "llmscript", "config.yaml")
-	fmt.Printf("Looking for config file at: %s\n", configPath)
+	customlog.Debug("Looking for config file at: %s", configPath)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -110,11 +111,11 @@ func LoadConfig() (*Config, error) {
 				return nil, fmt.Errorf("failed to get config dir: %w", err)
 			}
 			configPath = filepath.Join(configDir, "llmscript", "config.yaml")
-			fmt.Printf("Looking for config file at fallback location: %s\n", configPath)
+			customlog.Debug("Looking for config file at fallback location: %s", configPath)
 			data, err = os.ReadFile(configPath)
 			if err != nil {
 				if os.IsNotExist(err) {
-					fmt.Printf("Config file not found, using defaults\n")
+					customlog.Debug("Config file not found, using defaults")
 					return config, nil
 				}
 				return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -124,13 +125,10 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
-	fmt.Printf("Found config file: %s\n", configPath)
-	fmt.Printf("Read config file: %s\n", string(data))
+	customlog.Debug("Found config file: %s", configPath)
 
 	// Interpolate environment variables before unmarshaling
 	data = interpolateEnvVars(data)
-
-	fmt.Printf("After env var interpolation: %s\n", string(data))
 
 	// Create a temporary config to unmarshal into
 	var loadedConfig Config
@@ -138,7 +136,7 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	fmt.Printf("Loaded config from file: provider=%s\n", loadedConfig.LLM.Provider)
+	customlog.Debug("Loaded config from file: provider=%s", loadedConfig.LLM.Provider)
 
 	// Merge the loaded config with the default config
 	config.LLM.Provider = loadedConfig.LLM.Provider
@@ -149,7 +147,7 @@ func LoadConfig() (*Config, error) {
 	config.LLM.OpenAI.APIKey = loadedConfig.LLM.OpenAI.APIKey
 	config.LLM.OpenAI.Model = loadedConfig.LLM.OpenAI.Model
 
-	fmt.Printf("Merged config: provider=%s\n", config.LLM.Provider)
+	customlog.Debug("Merged config: provider=%s", config.LLM.Provider)
 
 	// Only update numeric values if they are explicitly set in the YAML
 	if loadedConfig.MaxFixes != 0 {
@@ -176,16 +174,16 @@ func WriteConfig(config *Config) error {
 		}
 		configDir = filepath.Join(homeDir, ".config")
 	}
-	fmt.Printf("Config directory: %s\n", configDir)
+	customlog.Debug("Config directory: %s", configDir)
 
 	llmscriptDir := filepath.Join(configDir, "llmscript")
-	fmt.Printf("Creating directory: %s\n", llmscriptDir)
+	customlog.Debug("Creating directory: %s", llmscriptDir)
 	if err := os.MkdirAll(llmscriptDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	configPath := filepath.Join(llmscriptDir, "config.yaml")
-	fmt.Printf("Writing config to: %s\n", configPath)
+	customlog.Debug("Writing config to: %s", configPath)
 	f, err := os.Create(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
