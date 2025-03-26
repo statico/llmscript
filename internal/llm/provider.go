@@ -96,9 +96,9 @@ You *MUST NOT* include any other text, explanations, or markdown formatting.
 </output_format>`
 
 	generateTestScriptPrompt = `You are an expert in testing shell scripts with extensive experience in test automation and quality assurance.
-Your goal is to create comprehensive test cases that verify script functionality, edge cases, and error conditions.
+Your goal is to create a comprehensive test script that verifies the functionality of the main script, including edge cases and error conditions.
 
-Create test cases for the following script:
+Create a test script for the following script:
 
 <script>
 %s
@@ -114,45 +114,33 @@ Platform Information:
 </platform>
 
 <requirements>
-1. Test both success and failure scenarios
-2. Include necessary setup and teardown steps
-3. Cover edge cases and boundary conditions
-4. Verify exact output matching
-5. Set appropriate timeout values
-6. Define required environment variables
-7. Ensure platform compatibility
-8. Include cleanup steps to restore system state
+1. Create a test script that runs multiple test cases
+2. Each test case should:
+   - Set up the test environment
+   - Run the main script with test inputs
+   - Verify the output matches expectations
+   - Clean up after the test
+3. Include tests for:
+   - Success scenarios
+   - Error cases
+   - Edge cases
+   - Boundary conditions
+4. Use clear test case names and descriptions
+5. Implement proper error handling and reporting
+6. Set appropriate timeouts for long-running tests
+7. Handle environment variables and cleanup
+8. Ensure platform compatibility
 </requirements>
 
 <output_format>
-IMPORTANT: You MUST output ONLY a JSON object with NO additional text, explanations, or markdown formatting.
-DO NOT include any text before or after the JSON.
-DO NOT explain your test cases.
-DO NOT wrap the JSON in code blocks.
-Use ONLY double quotes for strings in JSON, not single quotes.
-Use ONLY valid JSON values:
-- Strings must be in double quotes
-- Numbers must be integers or floats
-- Booleans must be true or false
-- Arrays must be in square brackets
-- Objects must be in curly braces
-- null is allowed
-DO NOT use any programming language expressions or operations (like string multiplication).
+Output your response in the following format:
 
-The response should be a single JSON object with this exact structure:
+<script>
+#!/usr/bin/env bash
+# Your test script content here
+</script>
 
-{
-  "tests": [
-    {
-      "name": "string",
-      "setup": ["string"],
-      "input": "string",
-      "expected": "string",
-      "timeout": "duration",
-      "environment": {"key": "value"}
-    }
-  ]
-}
+You *MUST NOT* include any other text, explanations, or markdown formatting.
 </output_format>`
 
 	fixScriptPrompt = `You are an expert shell script developer specializing in debugging and fixing shell scripts.
