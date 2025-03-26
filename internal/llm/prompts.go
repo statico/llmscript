@@ -63,6 +63,8 @@ Target platform Information:
    - Run the main script with test inputs
    - Verify the output matches expectations
    - Clean up after the test only if necessary
+- Do not modify ./script.sh, only test it
+- Do not use any randomization or nondeterministic functions
 - Use standard shell commands (sh/bash) with POSIX compliance where possible
 - The test script should not need any arguments to run
 - Return exit code 0 if all tests pass, or 1 if any test fails
