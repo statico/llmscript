@@ -71,27 +71,16 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 
 	// If config is provided, try to extract values
 	if config != nil {
-		cfg, ok := config.(struct {
-			Provider string `yaml:"provider"`
-			Ollama   struct {
-				Model string `yaml:"model"`
-				Host  string `yaml:"host"`
-			} `yaml:"ollama"`
-			Claude struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"claude"`
-			OpenAI struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"openai"`
-		})
-		if ok {
-			if cfg.Ollama.Model != "" {
-				ollamaConfig.Model = cfg.Ollama.Model
-			}
-			if cfg.Ollama.Host != "" {
-				ollamaConfig.Host = cfg.Ollama.Host
+		// Try to convert the config to a map[string]interface{} first
+		if cfgMap, ok := config.(map[string]interface{}); ok {
+			// Handle Ollama config
+			if ollamaCfg, ok := cfgMap["ollama"].(map[string]interface{}); ok {
+				if model, ok := ollamaCfg["model"].(string); ok && model != "" {
+					ollamaConfig.Model = model
+				}
+				if host, ok := ollamaCfg["host"].(string); ok && host != "" {
+					ollamaConfig.Host = host
+				}
 			}
 		}
 	}
@@ -100,41 +89,56 @@ func NewProvider(name string, config interface{}) (Provider, error) {
 	case "ollama":
 		return NewOllamaProvider(ollamaConfig)
 	case "claude":
-		cfg, ok := config.(struct {
-			Provider string `yaml:"provider"`
-			Ollama   struct {
-				Model string `yaml:"model"`
-				Host  string `yaml:"host"`
-			} `yaml:"ollama"`
-			Claude struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"claude"`
-			OpenAI struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"openai"`
-		})
-		if !ok || cfg.Claude.APIKey == "" {
+		if config == nil {
 			return nil, fmt.Errorf("a Claude API key is required")
 		}
+		// Try to convert the config to a map[string]interface{}
+		cfgMap, ok := config.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid config type for Claude provider")
+		}
+		// Extract Claude config
+		claudeCfg, ok := cfgMap["claude"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("missing Claude configuration")
+		}
+		apiKey, ok := claudeCfg["api_key"].(string)
+		if !ok || apiKey == "" {
+			return nil, fmt.Errorf("a Claude API key is required")
+		}
+		model, _ := claudeCfg["model"].(string)
+		if model == "" {
+			model = "claude-3-opus-20240229" // Default model
+		}
 		return NewClaudeProvider(ClaudeConfig{
-			APIKey: cfg.Claude.APIKey,
-			Model:  cfg.Claude.Model,
+			APIKey: apiKey,
+			Model:  model,
 		})
 	case "openai":
-		cfg, ok := config.(struct {
-			OpenAI struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"openai"`
-		})
-		if !ok || cfg.OpenAI.APIKey == "" {
-			return nil, fmt.Errorf("OpenAI API key is required")
+		if config == nil {
+			return nil, fmt.Errorf("an OpenAI API key is required")
+		}
+		// Try to convert the config to a map[string]interface{}
+		cfgMap, ok := config.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid config type for OpenAI provider")
+		}
+		// Extract OpenAI config
+		openaiCfg, ok := cfgMap["openai"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("missing OpenAI configuration")
+		}
+		apiKey, ok := openaiCfg["api_key"].(string)
+		if !ok || apiKey == "" {
+			return nil, fmt.Errorf("an OpenAI API key is required")
+		}
+		model, _ := openaiCfg["model"].(string)
+		if model == "" {
+			model = "gpt-4-turbo-preview" // Default model
 		}
 		return NewOpenAIProvider(OpenAIConfig{
-			APIKey: cfg.OpenAI.APIKey,
-			Model:  cfg.OpenAI.Model,
+			APIKey: apiKey,
+			Model:  model,
 		})
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", name)

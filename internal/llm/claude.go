@@ -117,8 +117,9 @@ func (p *ClaudeProvider) generate(ctx context.Context, prompt string) (string, e
 	url := "https://api.anthropic.com/v1/messages"
 
 	reqBody := map[string]interface{}{
-		"model":    p.config.Model,
-		"messages": []map[string]string{{"role": "user", "content": prompt}},
+		"model":      p.config.Model,
+		"messages":   []map[string]string{{"role": "user", "content": prompt}},
+		"max_tokens": 4096,
 	}
 
 	jsonData, err := json.Marshal(reqBody)

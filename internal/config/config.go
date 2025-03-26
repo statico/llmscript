@@ -88,32 +88,57 @@ func interpolateEnvVars(data []byte) []byte {
 func LoadConfig() (*Config, error) {
 	config := DefaultConfig()
 
+	// Try XDG_CONFIG_HOME first
 	configDir := os.Getenv("XDG_CONFIG_HOME")
 	if configDir == "" {
-		var err error
-		configDir, err = os.UserConfigDir()
+		// If XDG_CONFIG_HOME is not set, try ~/.config
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get config dir: %w", err)
+			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
+		configDir = filepath.Join(homeDir, ".config")
 	}
 
 	configPath := filepath.Join(configDir, "llmscript", "config.yaml")
+	fmt.Printf("Looking for config file at: %s\n", configPath)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return config, nil
+			// If not found in ~/.config, try UserConfigDir() as fallback
+			configDir, err = os.UserConfigDir()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get config dir: %w", err)
+			}
+			configPath = filepath.Join(configDir, "llmscript", "config.yaml")
+			fmt.Printf("Looking for config file at fallback location: %s\n", configPath)
+			data, err = os.ReadFile(configPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					fmt.Printf("Config file not found, using defaults\n")
+					return config, nil
+				}
+				return nil, fmt.Errorf("failed to read config file: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
-		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
+
+	fmt.Printf("Found config file: %s\n", configPath)
+	fmt.Printf("Read config file: %s\n", string(data))
 
 	// Interpolate environment variables before unmarshaling
 	data = interpolateEnvVars(data)
+
+	fmt.Printf("After env var interpolation: %s\n", string(data))
 
 	// Create a temporary config to unmarshal into
 	var loadedConfig Config
 	if err := yaml.Unmarshal(data, &loadedConfig); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
+
+	fmt.Printf("Loaded config from file: provider=%s\n", loadedConfig.LLM.Provider)
 
 	// Merge the loaded config with the default config
 	config.LLM.Provider = loadedConfig.LLM.Provider
@@ -123,6 +148,8 @@ func LoadConfig() (*Config, error) {
 	config.LLM.Claude.Model = loadedConfig.LLM.Claude.Model
 	config.LLM.OpenAI.APIKey = loadedConfig.LLM.OpenAI.APIKey
 	config.LLM.OpenAI.Model = loadedConfig.LLM.OpenAI.Model
+
+	fmt.Printf("Merged config: provider=%s\n", config.LLM.Provider)
 
 	// Only update numeric values if they are explicitly set in the YAML
 	if loadedConfig.MaxFixes != 0 {

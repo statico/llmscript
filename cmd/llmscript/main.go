@@ -39,6 +39,13 @@ func main() {
 	}
 	flag.Parse()
 
+	// Set up logging first
+	if *verbose {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
 	if *writeConfig {
 		cfg := config.DefaultConfig()
 		if err := config.WriteConfig(cfg); err != nil {
@@ -61,6 +68,7 @@ func main() {
 	// Override config with command line flags
 	if *llmProvider != "" {
 		cfg.LLM.Provider = *llmProvider
+		log.Debug("Provider overridden by command line flag: %s", *llmProvider)
 	}
 	if *llmModel != "" {
 		switch cfg.LLM.Provider {
@@ -85,13 +93,6 @@ func main() {
 		cfg.ExtraPrompt = *extraPrompt
 	}
 
-	// Set up logging
-	if *verbose {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
-
 	if len(flag.Args()) == 0 {
 		flag.Usage()
 		os.Exit(1)
@@ -111,25 +112,19 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Info("Creating LLM provider: %s", cfg.LLM.Provider)
-	provider, err := llm.NewProvider(cfg.LLM.Provider, struct {
-		Provider string `yaml:"provider"`
-		Ollama   struct {
-			Model string `yaml:"model"`
-			Host  string `yaml:"host"`
-		} `yaml:"ollama"`
-		Claude struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"claude"`
-		OpenAI struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"openai"`
-	}{
-		Provider: cfg.LLM.Provider,
-		Ollama:   cfg.LLM.Ollama,
-		Claude:   cfg.LLM.Claude,
-		OpenAI:   cfg.LLM.OpenAI,
+	provider, err := llm.NewProvider(cfg.LLM.Provider, map[string]interface{}{
+		"ollama": map[string]interface{}{
+			"model": cfg.LLM.Ollama.Model,
+			"host":  cfg.LLM.Ollama.Host,
+		},
+		"claude": map[string]interface{}{
+			"api_key": cfg.LLM.Claude.APIKey,
+			"model":   cfg.LLM.Claude.Model,
+		},
+		"openai": map[string]interface{}{
+			"api_key": cfg.LLM.OpenAI.APIKey,
+			"model":   cfg.LLM.OpenAI.Model,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
