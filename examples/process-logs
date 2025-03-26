@@ -1,0 +1,9 @@
+#!/usr/bin/env llmscript
+
+Find all .log files in the current directory
+For each log file:
+  - Extract lines containing "ERROR" or "WARNING"
+  - Add the filename as a prefix to each line
+  - Save to a new file named 'errors_<original_filename>'
+  - Count the number of errors and warnings
+Print a summary of errors and warnings found

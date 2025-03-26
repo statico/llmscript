@@ -1,0 +1,10 @@
+#!/usr/bin/env llmscript
+
+Find all files in the current directory and subdirectories that are:
+  - Older than 30 days
+  - Larger than 100MB
+  - Not in a .git directory
+Print a list of files that will be deleted
+Ask for confirmation before deleting
+Delete the files if confirmed
+Print a summary of deleted files

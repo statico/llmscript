@@ -1,0 +1,10 @@
+#!/usr/bin/env llmscript
+
+Create an output directory named 'converted'
+For each audio file in the current directory:
+  - Convert to MP3 format using ffmpeg
+  - Set bitrate to 192k
+  - Skip if already MP3
+  - Skip if not an audio file
+  - Show progress during conversion
+Print a summary of converted files

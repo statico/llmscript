@@ -17,12 +17,8 @@ lint:
 	fi
 	golangci-lint run
 
-example1:
+example:
 	make
 	./bin/llmscript --verbose --no-cache examples/hello-world
-
-example2:
-	make
-	./bin/llmscript --verbose --no-cache examples/product-downloader
 
 .DEFAULT_GOAL := build

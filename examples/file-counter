@@ -1,0 +1,6 @@
+#!/usr/bin/env llmscript
+
+Count all files in the current directory and its subdirectories
+Group them by file extension
+Print a summary showing the count for each extension
+Sort the results by count in descending order

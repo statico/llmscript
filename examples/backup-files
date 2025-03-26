@@ -1,0 +1,9 @@
+#!/usr/bin/env llmscript
+
+Create a backup directory named 'backups' with today's date
+For each file in the current directory:
+  - Create a copy in the backup directory
+  - Add timestamp to the filename
+  - Skip directories
+  - Skip the backup directory itself
+Print a summary of backed up files
