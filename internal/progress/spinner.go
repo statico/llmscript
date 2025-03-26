@@ -2,8 +2,11 @@ package progress
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -15,6 +18,7 @@ type Spinner struct {
 	ticker       *time.Ticker
 	started      time.Time
 	stopped      time.Time
+	sigChan      chan os.Signal
 }
 
 func NewSpinner(message string) *Spinner {
@@ -23,8 +27,13 @@ func NewSpinner(message string) *Spinner {
 			"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏",
 		},
 		started: time.Now(),
+		sigChan: make(chan os.Signal, 1),
 	}
 	s.SetMessage(message)
+
+	// Set up signal handling
+	signal.Notify(s.sigChan, syscall.SIGINT, syscall.SIGTERM)
+
 	go s.start()
 	return s
 }
@@ -56,13 +65,21 @@ func (s *Spinner) String() string {
 func (s *Spinner) start() {
 	s.ticker = time.NewTicker(100 * time.Millisecond)
 	fmt.Println() // Start on a new line
-	for range s.ticker.C {
-		s.value = (s.value + 1) % len(s.parts)
-		if !s.stopped.IsZero() {
+
+	for {
+		select {
+		case <-s.ticker.C:
+			s.value = (s.value + 1) % len(s.parts)
+			if !s.stopped.IsZero() {
+				return
+			}
+			fmt.Print("\r\033[2K") // Clear entire line
+			fmt.Print(s.String())
+		case <-s.sigChan:
+			s.Stop()
+			s.Clear()
 			return
 		}
-		fmt.Print("\r\033[2K") // Clear entire line
-		fmt.Print(s.String())
 	}
 }
 
