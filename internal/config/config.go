@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -157,18 +157,24 @@ func WriteConfig(config *Config) error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	var buf strings.Builder
-	encoder := yaml.NewEncoder(&buf)
-	encoder.SetIndent(2)
-	if err := encoder.Encode(config); err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-	encoder.Close()
-
 	configPath := filepath.Join(llmscriptDir, "config.yaml")
 	fmt.Printf("Writing config to: %s\n", configPath)
-	if err := os.WriteFile(configPath, []byte(buf.String()), 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+	f, err := os.Create(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to create config file: %w", err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Printf("failed to close config file: %v", err)
+		}
+	}()
+
+	encoder := yaml.NewEncoder(f)
+	if err := encoder.Encode(config); err != nil {
+		return fmt.Errorf("failed to encode config: %w", err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("failed to close encoder: %w", err)
 	}
 
 	return nil

@@ -23,8 +23,14 @@ func TestConfig(t *testing.T) {
 
 	t.Run("load and write config", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.Setenv("XDG_CONFIG_HOME", tmpDir)
-		defer os.Unsetenv("XDG_CONFIG_HOME")
+		if err := os.Setenv("XDG_CONFIG_HOME", tmpDir); err != nil {
+			t.Fatalf("failed to set XDG_CONFIG_HOME: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("XDG_CONFIG_HOME"); err != nil {
+				t.Errorf("failed to unset XDG_CONFIG_HOME: %v", err)
+			}
+		}()
 
 		cfg := DefaultConfig()
 		cfg.LLM.Provider = "ollama"
@@ -53,8 +59,14 @@ func TestConfig(t *testing.T) {
 
 	t.Run("load non-existent config", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.Setenv("XDG_CONFIG_HOME", tmpDir)
-		defer os.Unsetenv("XDG_CONFIG_HOME")
+		if err := os.Setenv("XDG_CONFIG_HOME", tmpDir); err != nil {
+			t.Fatalf("failed to set XDG_CONFIG_HOME: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("XDG_CONFIG_HOME"); err != nil {
+				t.Errorf("failed to unset XDG_CONFIG_HOME: %v", err)
+			}
+		}()
 
 		cfg, err := LoadConfig()
 		if err != nil {
@@ -68,12 +80,24 @@ func TestConfig(t *testing.T) {
 
 	t.Run("load yaml file with env vars", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.Setenv("XDG_CONFIG_HOME", tmpDir)
-		defer os.Unsetenv("XDG_CONFIG_HOME")
+		if err := os.Setenv("XDG_CONFIG_HOME", tmpDir); err != nil {
+			t.Fatalf("failed to set XDG_CONFIG_HOME: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("XDG_CONFIG_HOME"); err != nil {
+				t.Errorf("failed to unset XDG_CONFIG_HOME: %v", err)
+			}
+		}()
 
 		// Set up test environment variables
-		os.Setenv("TEST_API_KEY", "test-key-123")
-		defer os.Unsetenv("TEST_API_KEY")
+		if err := os.Setenv("TEST_API_KEY", "test-key-123"); err != nil {
+			t.Fatalf("failed to set TEST_API_KEY: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("TEST_API_KEY"); err != nil {
+				t.Errorf("failed to unset TEST_API_KEY: %v", err)
+			}
+		}()
 
 		// Create test config directory
 		configDir := filepath.Join(tmpDir, "llmscript")
@@ -127,8 +151,14 @@ additional_prompt: "Test prompt"
 
 	t.Run("config snapshot", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		os.Setenv("XDG_CONFIG_HOME", tmpDir)
-		defer os.Unsetenv("XDG_CONFIG_HOME")
+		if err := os.Setenv("XDG_CONFIG_HOME", tmpDir); err != nil {
+			t.Fatalf("failed to set XDG_CONFIG_HOME: %v", err)
+		}
+		defer func() {
+			if err := os.Unsetenv("XDG_CONFIG_HOME"); err != nil {
+				t.Errorf("failed to unset XDG_CONFIG_HOME: %v", err)
+			}
+		}()
 
 		// Create test config directory
 		configDir := filepath.Join(tmpDir, "llmscript")

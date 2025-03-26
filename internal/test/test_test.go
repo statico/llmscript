@@ -12,7 +12,11 @@ func TestTestRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test runner: %v", err)
 	}
-	defer runner.Cleanup()
+	defer func() {
+		if err := runner.Cleanup(); err != nil {
+			t.Errorf("failed to cleanup runner: %v", err)
+		}
+	}()
 
 	ctx := context.Background()
 

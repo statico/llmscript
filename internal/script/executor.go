@@ -43,11 +43,15 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 	}
 
 	// Create a secure temporary directory for this test
-	testDir, err := PrepareScriptEnvironment(e.workDir)
+	testDir, err := os.MkdirTemp("", "llmscript-test-*")
 	if err != nil {
-		return "", fmt.Errorf("failed to prepare test environment: %w", err)
+		return "", fmt.Errorf("failed to create test directory: %w", err)
 	}
-	defer os.RemoveAll(testDir)
+	defer func() {
+		if err := os.RemoveAll(testDir); err != nil {
+			log.Error("failed to remove test directory: %v", err)
+		}
+	}()
 
 	log.Debug("Test directory: %s", testDir)
 
@@ -83,9 +87,13 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 	// Set up input/output pipes
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return "", fmt.Errorf("failed to create stdin pipe: %w", err)
+		return "", fmt.Errorf("failed to get stdin pipe: %w", err)
 	}
-	defer stdin.Close()
+	defer func() {
+		if err := stdin.Close(); err != nil {
+			log.Error("failed to close stdin: %v", err)
+		}
+	}()
 
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
@@ -117,7 +125,9 @@ func (e *Executor) ExecuteTest(ctx context.Context, script string, test llm.Test
 		}
 	case <-ctx.Done():
 		if cmd.Process != nil {
-			cmd.Process.Kill()
+			if err := cmd.Process.Kill(); err != nil {
+				log.Error("failed to kill process: %v", err)
+			}
 		}
 		return "", fmt.Errorf("command timed out")
 	}

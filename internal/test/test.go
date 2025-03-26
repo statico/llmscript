@@ -6,10 +6,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
-const defaultTimeout = 30 * time.Second
+// Test represents a test case for a script
+type Test struct {
+	Name        string
+	Input       string
+	WantOutput  string
+	WantError   bool
+	WantExitErr bool
+}
 
 // TestRunner handles executing tests in a controlled environment
 type TestRunner struct {

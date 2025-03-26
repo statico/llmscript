@@ -119,9 +119,13 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	log.Info("Creating work directory")
 	workDir, err := os.MkdirTemp("", "llmscript-*")
 	if err != nil {
-		return fmt.Errorf("failed to create work directory: %w", err)
+		return fmt.Errorf("failed to create working directory: %w", err)
 	}
-	defer os.RemoveAll(workDir)
+	defer func() {
+		if err := os.RemoveAll(workDir); err != nil {
+			log.Error("failed to remove working directory: %v", err)
+		}
+	}()
 	if *verbose {
 		log.Info("Work directory: %s", workDir)
 	}

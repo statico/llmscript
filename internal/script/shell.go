@@ -2,6 +2,7 @@ package script
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,7 +93,9 @@ func PrepareScriptEnvironment(workDir string) (string, error) {
 
 	// Set restrictive permissions
 	if err := os.Chmod(tmpDir, 0750); err != nil {
-		os.RemoveAll(tmpDir)
+		if err := os.RemoveAll(tmpDir); err != nil {
+			log.Printf("failed to remove temp dir: %v", err)
+		}
 		return "", fmt.Errorf("failed to set directory permissions: %w", err)
 	}
 
