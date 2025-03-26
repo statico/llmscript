@@ -59,7 +59,7 @@ func GetPlatformInfo() string {
 
 // Prompt templates for different operations
 const (
-	generateScriptPrompt = `You are an expert shell script developer with deep knowledge of Unix/Linux systems, shell scripting best practices, and error handling.
+	generateFeatureScriptPrompt = `You are an expert shell script developer with deep knowledge of Unix/Linux systems, shell scripting best practices, and error handling.
 Your task is to create robust, maintainable shell scripts that work reliably across different environments.
 
 Create a shell script that accomplishes the following task:
@@ -95,7 +95,7 @@ Output your response in the following format:
 You *MUST NOT* include any other text, explanations, or markdown formatting.
 </output_format>`
 
-	generateTestsPrompt = `You are an expert in testing shell scripts with extensive experience in test automation and quality assurance.
+	generateTestScriptPrompt = `You are an expert in testing shell scripts with extensive experience in test automation and quality assurance.
 Your goal is to create comprehensive test cases that verify script functionality, edge cases, and error conditions.
 
 Create test cases for the following script:

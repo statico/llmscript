@@ -27,7 +27,7 @@ func NewOpenAIProvider(config OpenAIConfig) (*OpenAIProvider, error) {
 
 // GenerateScript creates a shell script from a natural language description
 func (p *OpenAIProvider) GenerateScript(ctx context.Context, description string) (string, error) {
-	prompt := p.formatPrompt(generateScriptPrompt, description)
+	prompt := p.formatPrompt(generateFeatureScriptPrompt, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate script: %w", err)
@@ -37,7 +37,7 @@ func (p *OpenAIProvider) GenerateScript(ctx context.Context, description string)
 
 // GenerateTests creates test cases for a script based on its description
 func (p *OpenAIProvider) GenerateTests(ctx context.Context, script string, description string) ([]Test, error) {
-	prompt := p.formatPrompt(generateTestsPrompt, script, description)
+	prompt := p.formatPrompt(generateTestScriptPrompt, script, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tests: %w", err)
