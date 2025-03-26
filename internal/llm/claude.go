@@ -25,6 +25,45 @@ func NewClaudeProvider(config ClaudeConfig) (*ClaudeProvider, error) {
 	}, nil
 }
 
+// GenerateScripts creates a main script and test script from a natural language description
+func (p *ClaudeProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
+	// First generate the main script
+	mainPrompt := p.formatPrompt(FeatureScriptPrompt, description)
+	mainScript, err := p.generate(ctx, mainPrompt)
+	if err != nil {
+		return ScriptPair{}, fmt.Errorf("failed to generate main script: %w", err)
+	}
+	log.Debug("Main script generated:\n%s", mainScript)
+
+	// Then generate the test script
+	testPrompt := p.formatPrompt(TestScriptPrompt, mainScript, description)
+	testScript, err := p.generate(ctx, testPrompt)
+	if err != nil {
+		return ScriptPair{}, fmt.Errorf("failed to generate test script: %w", err)
+	}
+	log.Debug("Test script generated:\n%s", testScript)
+
+	return ScriptPair{
+		MainScript: strings.TrimSpace(mainScript),
+		TestScript: strings.TrimSpace(testScript),
+	}, nil
+}
+
+// FixScripts attempts to fix both scripts based on test failures
+func (p *ClaudeProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
+	// Only fix the main script
+	mainPrompt := p.formatPrompt(FixScriptPrompt, scripts.MainScript, error)
+	fixedMainScript, err := p.generate(ctx, mainPrompt)
+	if err != nil {
+		return ScriptPair{}, fmt.Errorf("failed to fix main script: %w", err)
+	}
+
+	return ScriptPair{
+		MainScript: strings.TrimSpace(fixedMainScript),
+		TestScript: scripts.TestScript,
+	}, nil
+}
+
 // GenerateScript creates a shell script from a natural language description
 func (p *ClaudeProvider) GenerateScript(ctx context.Context, description string) (string, error) {
 	prompt := p.formatPrompt(FeatureScriptPrompt, description)
