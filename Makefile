@@ -11,6 +11,10 @@ clean:
 	go clean
 
 lint:
+	@if ! command -v golangci-lint &> /dev/null; then \
+		echo "golangci-lint not found. Please install it with: brew install golangci-lint"; \
+		exit 1; \
+	fi
 	golangci-lint run
 
 example1:
