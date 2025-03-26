@@ -42,9 +42,9 @@ Your goal is to create a test script that verifies the functionality of the main
 
 Create a test script for the following script:
 
-<main_script>
+<script>
 %s
-</main_script>
+</script>
 
 <description>
 %s
