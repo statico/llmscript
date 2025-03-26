@@ -56,6 +56,7 @@ Target platform Information:
 </target_platform>
 
 <requirements>
+- The script you're testing is ./script.sh
 - Create a test script that runs one or more test cases to make sure that ./script.sh works as expected
 - Each test case should:
    - Set up the test environment
