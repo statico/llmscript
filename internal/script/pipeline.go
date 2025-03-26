@@ -152,12 +152,14 @@ func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) er
 	cmd.Dir = testDir
 
 	output, err := cmd.CombinedOutput()
+	log.Debug("Test script output:\n%s", output)
 	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			log.Debug("Test script exited with code: %d", exitErr.ExitCode())
+		}
 		return fmt.Errorf("test script failed: %w\nOutput:\n%s", err, output)
 	}
-
-	// Log test script output in verbose mode
-	log.Debug("Test script output:\n%s", output)
+	log.Debug("Test script exited with code: 0")
 
 	return nil
 }
