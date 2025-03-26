@@ -75,9 +75,15 @@ func (s *Spinner) start() {
 			}
 			fmt.Print("\r\033[2K") // Clear entire line
 			fmt.Print(s.String())
-		case <-s.sigChan:
+		case sig := <-s.sigChan:
 			s.Stop()
 			s.Clear()
+			// Reset signal handling and re-send the signal
+			signal.Stop(s.sigChan)
+			p, err := os.FindProcess(os.Getpid())
+			if err == nil {
+				p.Signal(sig)
+			}
 			return
 		}
 	}
