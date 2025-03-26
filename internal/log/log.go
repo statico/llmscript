@@ -125,7 +125,7 @@ func Fatal(format string, args ...interface{}) {
 func Success(format string, args ...interface{}) {
 	if spinner != nil {
 		spinner.Stop()
-		fmt.Fprintf(os.Stderr, "\n")
+		spinner.Clear()
 	}
 	if isTTY() || getLevel() == DebugLevel {
 		fmt.Fprintf(os.Stderr, green+"✓ "+reset+format+"\n", args...)
