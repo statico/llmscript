@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestTestRunner(t *testing.T) {
@@ -18,76 +17,46 @@ func TestTestRunner(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name     string
-		test     Test
-		wantPass bool
+		name       string
+		mainScript string
+		testScript string
+		wantErr    bool
 	}{
 		{
-			name: "simple file creation",
-			test: Test{
-				Name:    "simple_file_creation",
-				Command: "echo 'hello' > output.txt",
-				Timeout: 5 * time.Second,
-				Expected: map[string]string{
-					"output.txt": "hello\n",
-				},
-			},
-			wantPass: true,
+			name: "simple echo test",
+			mainScript: `#!/bin/bash
+echo "hello"`,
+			testScript: `#!/bin/bash
+set -e
+[ "$(./script.sh)" = "hello" ] || exit 1`,
+			wantErr: false,
 		},
 		{
-			name: "setup and teardown",
-			test: Test{
-				Name:    "setup_and_teardown",
-				Command: "echo 'test' > test.txt",
-				Timeout: 5 * time.Second,
-				Setup: []string{
-					"mkdir -p testdir",
-				},
-				Teardown: []string{
-					"rm -rf testdir",
-				},
-				Expected: map[string]string{
-					"test.txt": "test\n",
-				},
-			},
-			wantPass: true,
+			name: "failing test",
+			mainScript: `#!/bin/bash
+echo "wrong"`,
+			testScript: `#!/bin/bash
+set -e
+[ "$(./script.sh)" = "right" ] || exit 1`,
+			wantErr: true,
 		},
 		{
-			name: "environment variables",
-			test: Test{
-				Name:    "environment_variables",
-				Command: "echo $TEST_VAR > env.txt",
-				Timeout: 5 * time.Second,
-				Environment: map[string]string{
-					"TEST_VAR": "test_value",
-				},
-				Expected: map[string]string{
-					"env.txt": "test_value\n",
-				},
-			},
-			wantPass: true,
-		},
-		{
-			name: "timeout",
-			test: Test{
-				Name:    "timeout_test",
-				Command: "sleep 2",
-				Timeout: 100 * time.Millisecond,
-			},
-			wantPass: false,
+			name: "test with setup",
+			mainScript: `#!/bin/bash
+cat input.txt`,
+			testScript: `#!/bin/bash
+set -e
+echo "test data" > input.txt
+[ "$(./script.sh)" = "test data" ] || exit 1`,
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := runner.RunTest(ctx, tt.test)
-			if err != nil {
-				t.Fatalf("RunTest failed: %v", err)
-			}
-
-			if result.Passed != tt.wantPass {
-				t.Errorf("RunTest() passed = %v, want %v\nError: %v\nStdout: %s\nStderr: %s",
-					result.Passed, tt.wantPass, result.Error, result.Stdout, result.Stderr)
+			err := runner.RunTest(ctx, tt.mainScript, tt.testScript)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RunTest() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -34,10 +34,13 @@ Test script:
 Error:
 %s
 
-Please fix both scripts to make the tests pass. Format your response as:
-<fixed main script>
+Please fix both scripts to make the tests pass. Format your response EXACTLY as follows:
+
+#!/bin/bash
+# Fixed main script content here
 ---
-<fixed test script>
+#!/bin/bash
+# Fixed test script content here
 
 Platform info: %s`
 )

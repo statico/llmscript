@@ -25,52 +25,44 @@ func NewOllamaProvider(config OllamaConfig) (*OllamaProvider, error) {
 	}, nil
 }
 
-// GenerateScript creates a shell script from a natural language description
-func (p *OllamaProvider) GenerateScript(ctx context.Context, description string) (string, error) {
-	prompt := p.formatPrompt(generateScriptPrompt, description)
+// GenerateScripts creates a main script and test script from a natural language description
+func (p *OllamaProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
+	prompt := p.formatPrompt(generateScriptsPrompt, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate script: %w", err)
+		return ScriptPair{}, fmt.Errorf("failed to generate scripts: %w", err)
 	}
-	return response, nil
+
+	// Split response into main script and test script
+	parts := strings.Split(response, "---")
+	if len(parts) != 2 {
+		return ScriptPair{}, fmt.Errorf("invalid response format: expected two scripts separated by '---'")
+	}
+
+	return ScriptPair{
+		MainScript: strings.TrimSpace(parts[0]),
+		TestScript: strings.TrimSpace(parts[1]),
+	}, nil
 }
 
-// GenerateTests creates test cases for a script based on its description
-func (p *OllamaProvider) GenerateTests(ctx context.Context, script string, description string) ([]Test, error) {
-	prompt := p.formatPrompt(generateTestsPrompt, script, description)
+// FixScripts attempts to fix both scripts based on test failures
+func (p *OllamaProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
+	prompt := p.formatPrompt(fixScriptsPrompt, scripts.MainScript, scripts.TestScript, error)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate tests: %w", err)
+		return ScriptPair{}, fmt.Errorf("failed to fix scripts: %w", err)
 	}
 
-	log.Debug("Raw LLM response:\n%s", response)
+	// Split response into main script and test script
+	parts := strings.Split(response, "---")
+	if len(parts) != 2 {
+		return ScriptPair{}, fmt.Errorf("invalid response format: expected two scripts separated by '---'")
+	}
 
-	// Try to extract JSON from the response
-	jsonStart := strings.Index(response, "{")
-	jsonEnd := strings.LastIndex(response, "}")
-	if jsonStart == -1 || jsonEnd == -1 || jsonEnd <= jsonStart {
-		return nil, fmt.Errorf("failed to find valid JSON in response: %s", response)
-	}
-	jsonStr := response[jsonStart : jsonEnd+1]
-
-	var result struct {
-		Tests []Test `json:"tests"`
-	}
-	if err := json.Unmarshal([]byte(jsonStr), &result); err != nil {
-		return nil, fmt.Errorf("failed to parse test cases: %w\nRaw response:\n%s", err, response)
-	}
-	return result.Tests, nil
-}
-
-// FixScript attempts to fix a script based on test failures
-func (p *OllamaProvider) FixScript(ctx context.Context, script string, failures []TestFailure) (string, error) {
-	failuresStr := formatFailures(failures)
-	prompt := p.formatPrompt(fixScriptPrompt, script, failuresStr)
-	response, err := p.generate(ctx, prompt)
-	if err != nil {
-		return "", fmt.Errorf("failed to fix script: %w", err)
-	}
-	return response, nil
+	return ScriptPair{
+		MainScript: strings.TrimSpace(parts[0]),
+		TestScript: strings.TrimSpace(parts[1]),
+	}, nil
 }
 
 // generate sends a prompt to Ollama and returns the response

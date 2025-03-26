@@ -80,93 +80,63 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 		}
 	}
 
-	// Generate initial script and tests
+	// Generate initial scripts
 	if p.showProgress {
-		log.Info("Generating initial script...")
+		log.Info("Generating initial scripts...")
 	}
-	script, err := p.llm.GenerateScript(ctx, description)
+	scripts, err := p.llm.GenerateScripts(ctx, description)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate initial script: %w", err)
+		return "", fmt.Errorf("failed to generate initial scripts: %w", err)
 	}
 	if p.showProgress {
-		log.Debug("Initial script generated")
-	}
-
-	// Generate tests for the script
-	if p.showProgress {
-		log.Info("Generating tests...")
-	}
-	tests, err := p.llm.GenerateTests(ctx, script, description)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate tests: %w", err)
-	}
-	if p.showProgress {
-		log.Debug("Tests generated")
+		log.Debug("Initial scripts generated")
 	}
 
 	// Run test script and fix failures
 	for attempt := 0; attempt < p.maxAttempts; attempt++ {
 		if attempt > 0 {
 			if p.showProgress {
-				log.Info("Attempt %d/%d: Generating new script...", attempt+1, p.maxAttempts)
+				log.Info("Attempt %d/%d: Generating new scripts...", attempt+1, p.maxAttempts)
 			}
-			script, err = p.llm.GenerateScript(ctx, description)
+			scripts, err = p.llm.GenerateScripts(ctx, description)
 			if err != nil {
-				return "", fmt.Errorf("failed to generate new script: %w", err)
+				return "", fmt.Errorf("failed to generate new scripts: %w", err)
 			}
 			if p.showProgress {
-				log.Debug("New script generated")
-			}
-
-			// Generate new tests for the new script
-			if p.showProgress {
-				log.Info("Generating new tests...")
-			}
-			tests, err = p.llm.GenerateTests(ctx, script, description)
-			if err != nil {
-				return "", fmt.Errorf("failed to generate tests: %w", err)
-			}
-			if p.showProgress {
-				log.Debug("New tests generated")
+				log.Debug("New scripts generated")
 			}
 		}
 
 		// Try to fix any failures
 		for fix := 0; fix < p.maxFixes; fix++ {
-			// Run tests first to get initial failures
-			failures, err := p.runTests(ctx, script, tests)
-			if err != nil {
-				return "", fmt.Errorf("failed to run tests: %w", err)
-			}
-			if len(failures) == 0 {
-				// Cache successful script if caching is enabled
+			// Run test script
+			err := p.runTestScript(ctx, scripts)
+			if err == nil {
+				// Cache successful scripts if caching is enabled
 				if !p.noCache && p.cache != nil {
-					if err := p.cache.Set(description, llm.ScriptPair{
-						MainScript: script,
-						TestScript: generateTestScript(tests),
-					}); err != nil {
-						log.Warn("Failed to cache successful script: %v", err)
+					if err := p.cache.Set(description, scripts); err != nil {
+						log.Warn("Failed to cache successful scripts: %v", err)
 					}
 				}
-				return script, nil
+				return scripts.MainScript, nil
 			}
 
 			if fix < p.maxFixes-1 { // Don't try to fix on the last iteration
 				if p.showProgress {
 					log.Info("Fix attempt %d/%d...", fix+1, p.maxFixes)
 				}
-				script, err = p.llm.FixScript(ctx, script, failures)
+				scripts, err = p.llm.FixScripts(ctx, scripts, err.Error())
 				if err != nil {
-					return "", fmt.Errorf("failed to fix script: %w", err)
+					return "", fmt.Errorf("failed to fix scripts: %w", err)
 				}
 				if p.showProgress {
-					log.Debug("Script fixed")
+					log.Debug("Scripts fixed")
 				}
 			}
 		}
 	}
 
-	return "", fmt.Errorf("failed to generate working script after %d attempts", p.maxAttempts)
+	return "", fmt.Errorf("failed to generate working scripts after %d attempts", p.maxAttempts)
 }
 
 // runTestScript executes the test script in a controlled environment
@@ -189,8 +159,11 @@ func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) er
 		return fmt.Errorf("failed to write test script: %w", err)
 	}
 
-	// Run the test script
-	cmd := exec.CommandContext(ctx, "sh", testScriptPath)
+	// Run the test script with timeout
+	ctx, cancel := context.WithTimeout(ctx, p.timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, testScriptPath)
 	cmd.Dir = testDir
 
 	output, err := cmd.CombinedOutput()

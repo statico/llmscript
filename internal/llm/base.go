@@ -16,12 +16,12 @@ type BaseProvider struct {
 	Config interface{}
 }
 
-// GenerateScripts is a default implementation that returns an error
+// GenerateScripts generates a main script and test script pair
 func (p *BaseProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
 	return ScriptPair{}, fmt.Errorf("GenerateScripts not implemented")
 }
 
-// FixScripts is a default implementation that returns an error
+// FixScripts attempts to fix a script pair based on test failures
 func (p *BaseProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
 	return ScriptPair{}, fmt.Errorf("FixScripts not implemented")
 }

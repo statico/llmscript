@@ -78,15 +78,15 @@ Here's an example configuration:
 # LLM configuration
 llm:
   # The LLM provider to use (required)
-  provider: "ollama"  # or "claude", "openai", etc.
+  provider: "ollama" # or "claude", "openai", etc.
 
   # Provider-specific settings
   ollama:
-    model: "llama3.2"  # The model to use
-    host: "http://localhost:11434"  # Optional: Ollama host URL
+    model: "llama3.2" # The model to use
+    host: "http://localhost:11434" # Optional: Ollama host URL
 
   claude:
-    api_key: "${CLAUDE_API_KEY}"  # Environment variable reference
+    api_key: "${CLAUDE_API_KEY}" # Environment variable reference
     model: "claude-3-opus-20240229"
 
   openai:
