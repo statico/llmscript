@@ -47,8 +47,10 @@ Done!
 ## Installation
 
 ```
-go install github.com/statico/llmscript@latest
+go install github.com/statico/llmscript/cmd/llmscript@latest
 ```
+
+(Can't find it? Check `~/go/bin`.)
 
 ## Usage
 
