@@ -26,6 +26,7 @@ Running it with a directory of PNG files would look like this:
 
 ```
 $ ./convert-pngs
+✓ Script generated successfully
 Creating output directory
 Convering input/1.png
 Convering input/2.png
@@ -35,6 +36,18 @@ Running pngcrush on output/2.png
 Running pngcrush on output/3.png
 Done!
 ```
+
+Running it again will use the cache and not generate any new scripts:
+
+```
+$ ./convert-pngs
+✓ Cached script found
+Creating output directory
+Convering input/1.png
+...
+```
+
+If you want to generate a new script, use the `--no-cache` flag.
 
 ## Prerequisites
 
