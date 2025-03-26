@@ -3,29 +3,30 @@ package llm
 const (
 	generateScriptsPrompt = `You are a shell script expert. Create two shell scripts based on this description:
 
+<description>
+%s
+</description>
+
+<scripts>
+# Feature script content here
+# This is the feature script that implements the functionality
+
 %s
 
-IMPORTANT: You MUST format your response EXACTLY as follows, with NO additional text or explanations:
+# Test script content here
+# This is the test script that verifies the feature script
 
-#!/bin/bash
-# First script content here
-# This is the main script that does the work
----
-#!/bin/bash
-# Second script content here
-# This is the test script that verifies the main script
+%s
+</scripts>
 
 The test script should:
-1. Set up any necessary test environment
-2. Run the main script with ./script.sh
-3. Verify the output and state
-4. Exit with 0 for success, non-zero for failure
-
-Platform info: %s`
+1. Be executable
+2. Run the feature script with ./script.sh
+3. Exit with code 0 if all tests pass, non-zero if any fail`
 
 	fixScriptsPrompt = `The following scripts failed their tests:
 
-Main script:
+Feature script:
 %s
 
 Test script:
@@ -36,11 +37,9 @@ Error:
 
 Please fix both scripts to make the tests pass. Format your response EXACTLY as follows:
 
-#!/bin/bash
-# Fixed main script content here
----
-#!/bin/bash
-# Fixed test script content here
+# Fixed feature script content here
+%s
 
-Platform info: %s`
+# Fixed test script content here
+%s`
 )

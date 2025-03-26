@@ -5,10 +5,10 @@ import (
 	"fmt"
 )
 
-// ScriptPair represents a main script and its test script
+// ScriptPair represents a feature script and its test script
 type ScriptPair struct {
-	MainScript string // The actual script to run
-	TestScript string // The script that tests the main script
+	MainScript string // The feature script that implements the functionality
+	TestScript string // The test script that verifies the feature script
 }
 
 // BaseProvider provides common functionality for LLM providers

@@ -149,11 +149,11 @@ func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) er
 	defer os.RemoveAll(testDir)
 
 	// Write both scripts to files
-	mainScriptPath := filepath.Join(testDir, "script.sh")
+	featureScriptPath := filepath.Join(testDir, "script.sh")
 	testScriptPath := filepath.Join(testDir, "test.sh")
 
-	if err := os.WriteFile(mainScriptPath, []byte(scripts.MainScript), 0750); err != nil {
-		return fmt.Errorf("failed to write main script: %w", err)
+	if err := os.WriteFile(featureScriptPath, []byte(scripts.MainScript), 0750); err != nil {
+		return fmt.Errorf("failed to write feature script: %w", err)
 	}
 	if err := os.WriteFile(testScriptPath, []byte(scripts.TestScript), 0750); err != nil {
 		return fmt.Errorf("failed to write test script: %w", err)

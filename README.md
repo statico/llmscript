@@ -44,27 +44,27 @@ Done!
 Given a script description written in natural language, llmscript works by:
 
 1. Generating two scripts:
-   - The main script that does the actual work
-   - A test script that verifies the main script works correctly
+   - The feature script that implements the functionality
+   - A test script that verifies the feature script works correctly
 2. Making both scripts executable
 3. Running the test script, which will:
-   - Set up the test environment
-   - Run the main script
+   - Set up any necessary test environment
+   - Run the feature script
    - Verify the output and state
-   - Exit with success/failure status
 4. If the test fails, the LLM will fix both scripts and try again
 5. Once tests pass, the scripts are cached for future use (in `~/.config/llmscript/cache`)
 
 For example, if you write "Print hello world", llmscript might generate:
 
-```sh
-# script.sh
-MESSAGE=${MESSAGE:-"Hello, world!"}
-echo $MESSAGE
+```bash
+# Feature script (script.sh)
+#!/bin/bash
+echo "Hello, world!"
+```
 
-# test.sh
-#!/bin/sh
-set -e
+```bash
+# Test script (test.sh)
+#!/bin/bash
 [ "$(./script.sh)" = "Hello, world!" ] || exit 1
 ```
 
