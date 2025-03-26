@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/statico/llmscript/internal/llm"
-	"github.com/statico/llmscript/internal/log"
 )
 
 // Cache handles caching of successful scripts and their test plans
@@ -38,12 +37,8 @@ func (c *Cache) Get(description string) (llm.ScriptPair, error) {
 	hash := c.hashDescription(description)
 	scriptPath := filepath.Join(c.dir, hash+".json")
 
-	log.Debug("Checking cache for script with hash: %s", hash)
-	log.Debug("Script path: %s", scriptPath)
-
 	// Check if file exists
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		log.Debug("Script not found in cache")
 		return llm.ScriptPair{}, nil
 	}
 
@@ -57,7 +52,6 @@ func (c *Cache) Get(description string) (llm.ScriptPair, error) {
 	if err := json.Unmarshal(data, &scripts); err != nil {
 		return llm.ScriptPair{}, fmt.Errorf("failed to parse cached scripts: %w", err)
 	}
-	log.Debug("Found cached scripts")
 
 	return scripts, nil
 }
@@ -67,9 +61,6 @@ func (c *Cache) Set(description string, scripts llm.ScriptPair) error {
 	hash := c.hashDescription(description)
 	scriptPath := filepath.Join(c.dir, hash+".json")
 
-	log.Debug("Caching script with hash: %s", hash)
-	log.Debug("Script path: %s", scriptPath)
-
 	// Write script pair
 	data, err := json.Marshal(scripts)
 	if err != nil {
@@ -78,7 +69,6 @@ func (c *Cache) Set(description string, scripts llm.ScriptPair) error {
 	if err := os.WriteFile(scriptPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write cached script: %w", err)
 	}
-	log.Debug("Scripts cached successfully")
 
 	return nil
 }

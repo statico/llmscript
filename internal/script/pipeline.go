@@ -61,10 +61,9 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	if !p.noCache && p.cache != nil {
 		log.Info("Checking cache...")
 		if scripts, err := p.cache.Get(description); err == nil && scripts.MainScript != "" {
-			log.Info("Found cached scripts, verifying...")
 			// Run test script to verify
 			if err := p.runTestScript(ctx, scripts); err == nil {
-				log.Success("Cached scripts verified successfully")
+				log.Success("Cached script found")
 				return scripts.MainScript, nil
 			}
 			log.Warn("Cached scripts failed verification, generating new scripts")
@@ -103,6 +102,7 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 						log.Warn("Failed to cache successful scripts: %v", err)
 					}
 				}
+				log.Success("Script generated successfully")
 				return scripts.MainScript, nil
 			}
 
