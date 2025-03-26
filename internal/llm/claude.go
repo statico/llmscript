@@ -28,6 +28,7 @@ func NewClaudeProvider(config ClaudeConfig) (*ClaudeProvider, error) {
 // GenerateScripts creates a main script and test script from a natural language description
 func (p *ClaudeProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
 	// First generate the main script
+	log.Info("Generating main script...")
 	mainPrompt := p.formatPrompt(FeatureScriptPrompt, description)
 	mainScript, err := p.generate(ctx, mainPrompt)
 	if err != nil {
@@ -37,6 +38,7 @@ func (p *ClaudeProvider) GenerateScripts(ctx context.Context, description string
 	log.Debug("Main script generated:\n%s", mainScript)
 
 	// Then generate the test script
+	log.Info("Generating test script...")
 	testPrompt := p.formatPrompt(TestScriptPrompt, mainScript, description)
 	testScript, err := p.generate(ctx, testPrompt)
 	if err != nil {

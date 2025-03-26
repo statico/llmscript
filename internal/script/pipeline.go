@@ -156,5 +156,8 @@ func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) er
 		return fmt.Errorf("test script failed: %w\nOutput:\n%s", err, output)
 	}
 
+	// Log test script output in verbose mode
+	log.Debug("Test script output:\n%s", output)
+
 	return nil
 }

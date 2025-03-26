@@ -39,6 +39,11 @@ func SetLevel(l Level) {
 	level = l
 }
 
+// GetLevel returns the current logging level
+func GetLevel() Level {
+	return getLevel()
+}
+
 func getLevel() Level {
 	levelLock.RLock()
 	defer levelLock.RUnlock()
