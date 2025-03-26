@@ -102,7 +102,6 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 						log.Warn("Failed to cache successful scripts: %v", err)
 					}
 				}
-				log.Success("Script generated successfully")
 				return scripts.MainScript, nil
 			}
 
