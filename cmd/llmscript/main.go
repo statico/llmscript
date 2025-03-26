@@ -179,6 +179,9 @@ func runScript(cfg *config.Config, scriptFile string) error {
 		return nil
 	}
 
+	// Stop the spinner before executing the script
+	log.GetSpinner().Stop()
+
 	// Get any additional arguments after the script file
 	scriptArgs := flag.Args()[1:]
 
