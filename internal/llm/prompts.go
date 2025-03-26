@@ -18,13 +18,11 @@ Target platform Information:
 
 <requirements>
 - Use standard shell commands (sh/bash) with POSIX compliance where possible
-- Implement comprehensive error handling with descriptive messages
-- Use clear, descriptive variable names following shell naming conventions
-- Add concise, meaningful comments for complex logic
-- Follow shell scripting best practices and security guidelines
+- Only use argument and environment variables if the description requires it
+- Follow shell scripting best practices
 - Ensure cross-platform compatibility
-- Include input validation where appropriate
 - Use proper exit codes for different scenarios
+- Keep the script short, concise, and simple
 </requirements>
 
 <output_format>
@@ -44,9 +42,9 @@ Your goal is to create a comprehensive test script that verifies the functionali
 
 Create a test script for the following script:
 
-<script>
+<main_script>
 %s
-</script>
+</main_script>
 
 <description>
 %s
@@ -58,22 +56,17 @@ Target platform Information:
 </target_platform>
 
 <requirements>
-- Create a test script that runs multiple test cases
+- Create a test script that runs one or more test cases to make sure the main script works as expected
 - Each test case should:
    - Set up the test environment
    - Run the main script with test inputs
    - Verify the output matches expectations
    - Clean up after the test
-- Include tests for:
-   - Success scenarios
-   - Error cases
-   - Edge cases
-   - Boundary conditions
-- Use clear test case names and descriptions
-- Implement proper error handling and reporting
-- Set appropriate timeouts for long-running tests
+- Use standard shell commands (sh/bash) with POSIX compliance where possible
+- Set appropriate timeouts for any long-running tests
 - Handle environment variables and cleanup
 - Ensure platform compatibility
+- Keep the script short, concise, and simple
 </requirements>
 
 <output_format>
@@ -109,12 +102,9 @@ Target platform Information:
 <requirements>
 - Fix all test failures while maintaining existing functionality
 - Improve error handling and validation
-- Enhance code readability and maintainability
 - Follow shell scripting best practices
 - Ensure cross-platform compatibility
-- Add appropriate logging for debugging
-- Implement proper cleanup in error cases
-- Optimize performance where possible
+- Keep the script short, concise, and simple
 </requirements>
 
 <output_format>
