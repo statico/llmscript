@@ -4,6 +4,8 @@
 
 llmscript is a shell script that uses a large language model (LLM) to build and test shell programs so that you can write scripts in natural language instead of bash or other shell scripting languages.
 
+<img src="https://github.com/user-attachments/assets/6257eb3c-fe66-41b0-9b45-39ec29b40a3a" width="640" alt="a terminal window showing a demonstration of the llmscript tool to print hello world" />
+
 You can configure it to use [Ollama](https://ollama.com/) (free and local), [Claude](https://www.anthropic.com/claude) (paid), or [OpenAI](https://openai.com/) (paid).
 
 > [!NOTE]
