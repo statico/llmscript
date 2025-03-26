@@ -33,6 +33,8 @@ type Provider interface {
 	GenerateScripts(ctx context.Context, description string) (ScriptPair, error)
 	// FixScripts attempts to fix both scripts based on test failures
 	FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error)
+	// Name returns a human-readable name for the provider
+	Name() string
 }
 
 // GetPlatformInfo returns information about the current platform

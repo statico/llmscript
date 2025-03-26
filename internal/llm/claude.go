@@ -170,3 +170,8 @@ func (p *ClaudeProvider) generate(ctx context.Context, prompt string) (string, e
 
 	return result.Content[0].Text, nil
 }
+
+// Name returns a human-readable name for the provider
+func (p *ClaudeProvider) Name() string {
+	return "Claude"
+}

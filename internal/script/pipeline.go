@@ -72,7 +72,7 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 	}
 
 	// Generate initial scripts
-	log.Info("Generating initial scripts...")
+	log.Info("Generating initial scripts with %s...", p.llm.Name())
 	scripts, err := p.llm.GenerateScripts(ctx, description)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate initial scripts: %w", err)

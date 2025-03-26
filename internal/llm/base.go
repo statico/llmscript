@@ -55,3 +55,8 @@ func (p *BaseProvider) formatPrompt(template string, args ...interface{}) string
 	args = append(args, GetPlatformInfo())
 	return fmt.Sprintf(template, args...)
 }
+
+// Name returns a human-readable name for the provider
+func (p *BaseProvider) Name() string {
+	return ""
+}

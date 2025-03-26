@@ -172,3 +172,8 @@ func (p *OpenAIProvider) generate(ctx context.Context, prompt string) (string, e
 
 	return result.Choices[0].Message.Content, nil
 }
+
+// Name returns a human-readable name for the provider
+func (p *OpenAIProvider) Name() string {
+	return "OpenAI"
+}

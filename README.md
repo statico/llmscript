@@ -69,7 +69,7 @@ By default, llmscript will use Ollama with the `llama3.2` model. You can configu
 > [!NOTE]
 > Spooked by running LLM-generated shell scripts? Good for you! Consider running this via Docker:
 >
-> `docker run --network host -it -v "$(pwd):/data" -w /data ghcr.io/statico/llmscript examples/hello-world`
+> `docker run --network host -it -v "$(pwd):/data" -w /data ghcr.io/statico/llmscript --verbose examples/hello-world`
 
 ## How it works
 

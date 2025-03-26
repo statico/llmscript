@@ -123,6 +123,11 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 	return result.Response, nil
 }
 
+// Name returns a human-readable name for the provider
+func (p *OllamaProvider) Name() string {
+	return "Ollama"
+}
+
 // formatFailures formats test failures into a string
 func formatFailures(failures []TestFailure) string {
 	var parts []string
