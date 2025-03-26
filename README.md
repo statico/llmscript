@@ -9,7 +9,7 @@ You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [C
 > [!NOTE]
 > Does this actually work? Yeah, somewhat! Could it create scripts that erase your drive? Maybe! Good luck!
 >
-> Most of this project was written by an LLM, so it's not perfect. I can't actually claim that I "wrote" any of the source code.
+> Most of this project was written by [Claude](https://www.anthropic.com/claude) with [Cursor](https://www.cursor.com). I can't actually claim that I "wrote" any of the source code. I barely know Go.
 
 ## Example
 
