@@ -33,6 +33,7 @@ func (p *ClaudeProvider) GenerateScripts(ctx context.Context, description string
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to generate main script: %w", err)
 	}
+	mainScript = ExtractScriptContent(mainScript)
 	log.Debug("Main script generated:\n%s", mainScript)
 
 	// Then generate the test script
@@ -41,6 +42,7 @@ func (p *ClaudeProvider) GenerateScripts(ctx context.Context, description string
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to generate test script: %w", err)
 	}
+	testScript = ExtractScriptContent(testScript)
 	log.Debug("Test script generated:\n%s", testScript)
 
 	return ScriptPair{
@@ -57,6 +59,7 @@ func (p *ClaudeProvider) FixScripts(ctx context.Context, scripts ScriptPair, err
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to fix main script: %w", err)
 	}
+	fixedMainScript = ExtractScriptContent(fixedMainScript)
 
 	return ScriptPair{
 		MainScript: strings.TrimSpace(fixedMainScript),
