@@ -35,6 +35,11 @@ func (s *Spinner) SetMessage(message string) {
 
 func (s *Spinner) String() string {
 	var sb strings.Builder
+	if s.stopped.IsZero() {
+		spinner := s.parts[s.value]
+		sb.WriteString(spinner)
+		sb.WriteString(" ")
+	}
 	if message, ok := s.message.Load().(string); ok && len(message) > 0 {
 		message := strings.TrimSpace(message)
 		if s.messageWidth > 0 && len(message) > s.messageWidth {
@@ -44,24 +49,20 @@ func (s *Spinner) String() string {
 		if padding := s.messageWidth - sb.Len(); padding > 0 {
 			sb.WriteString(strings.Repeat(" ", padding))
 		}
-		sb.WriteString(" ")
-	}
-	if s.stopped.IsZero() {
-		spinner := s.parts[s.value]
-		sb.WriteString(spinner)
-		sb.WriteString(" ")
 	}
 	return sb.String()
 }
 
 func (s *Spinner) start() {
 	s.ticker = time.NewTicker(100 * time.Millisecond)
+	fmt.Println() // Start on a new line
 	for range s.ticker.C {
 		s.value = (s.value + 1) % len(s.parts)
 		if !s.stopped.IsZero() {
 			return
 		}
-		fmt.Printf("\r%s", s.String())
+		fmt.Print("\r\033[2K") // Clear entire line
+		fmt.Print(s.String())
 	}
 }
 
@@ -74,7 +75,7 @@ func (s *Spinner) Stop() {
 	}
 }
 
-// Clear clears the current line by printing a carriage return and spaces
+// Clear clears the current line using ANSI escape sequences
 func (s *Spinner) Clear() {
-	fmt.Printf("\r%s\r", strings.Repeat(" ", 100))
+	fmt.Print("\r\033[2K") // \033[2K clears the entire line
 }
