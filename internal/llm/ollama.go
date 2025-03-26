@@ -49,23 +49,16 @@ func (p *OllamaProvider) GenerateScripts(ctx context.Context, description string
 
 // FixScripts attempts to fix both scripts based on test failures
 func (p *OllamaProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
-	// First fix the main script
+	// Only fix the main script
 	mainPrompt := p.formatPrompt(FixScriptPrompt, scripts.MainScript, error)
 	fixedMainScript, err := p.generate(ctx, mainPrompt)
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to fix main script: %w", err)
 	}
 
-	// Then fix the test script
-	testPrompt := p.formatPrompt(FixScriptPrompt, scripts.TestScript, error)
-	fixedTestScript, err := p.generate(ctx, testPrompt)
-	if err != nil {
-		return ScriptPair{}, fmt.Errorf("failed to fix test script: %w", err)
-	}
-
 	return ScriptPair{
 		MainScript: strings.TrimSpace(fixedMainScript),
-		TestScript: strings.TrimSpace(fixedTestScript),
+		TestScript: scripts.TestScript,
 	}, nil
 }
 
@@ -101,23 +94,23 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 		return "", fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
+	// Read the entire response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse the response
 	var result struct {
 		Response string `json:"response"`
 		Done     bool   `json:"done"`
 	}
-
-	var fullResponse strings.Builder
-	decoder := json.NewDecoder(resp.Body)
-	for decoder.More() {
-		if err := decoder.Decode(&result); err != nil {
-			return "", fmt.Errorf("failed to decode response: %w", err)
-		}
-		fullResponse.WriteString(result.Response)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	response := fullResponse.String()
-	log.Debug("Raw Ollama response:\n%s", response)
-	return response, nil
+	log.Debug("Raw Ollama response:\n%s", result.Response)
+	return result.Response, nil
 }
 
 // formatFailures formats test failures into a string
