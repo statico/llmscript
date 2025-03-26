@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/statico/llmscript/internal/llm"
 	"github.com/statico/llmscript/internal/log"
@@ -84,6 +85,6 @@ func (c *Cache) Set(description string, scripts llm.ScriptPair) error {
 
 // hashDescription generates a SHA-256 hash of the script description
 func (c *Cache) hashDescription(description string) string {
-	hash := sha256.Sum256([]byte(description))
+	hash := sha256.Sum256([]byte(strings.TrimSpace(description)))
 	return hex.EncodeToString(hash[:])
 }
