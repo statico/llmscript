@@ -26,6 +26,10 @@ func (m *mockLLMProvider) FixScripts(ctx context.Context, scripts llm.ScriptPair
 	return m.fixScriptsFunc(ctx, scripts, error)
 }
 
+func (m *mockLLMProvider) Name() string {
+	return "mock"
+}
+
 func TestPipeline_GenerateAndTest(t *testing.T) {
 	// Create a temporary directory for testing
 	tmpDir, err := os.MkdirTemp("", "llmscript-test-*")
