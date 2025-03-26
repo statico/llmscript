@@ -1,5 +1,7 @@
 # llmscript
 
+[![CI](https://github.com/statico/llmscript/actions/workflows/ci.yml/badge.svg)](https://github.com/statico/llmscript/actions/workflows/ci.yml)
+
 llmscript is a shell script that uses a large language model (LLM) to build and test shell programs so that you can write scripts in natural language instead of bash or other shell scripting languages.
 
 You can configure it to use any LLM, such as [Ollama](https://ollama.com/) or [Claude](https://www.anthropic.com/claude).
