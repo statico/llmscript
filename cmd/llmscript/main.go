@@ -25,6 +25,7 @@ var (
 	llmModel    = flag.String("llm.model", "", "LLM model to use (overrides config)")
 	extraPrompt = flag.String("prompt", "", "Additional prompt to provide to the LLM")
 	noCache     = flag.Bool("no-cache", false, "Skip using the cache for script generation")
+	printOnly   = flag.Bool("print", false, "Print the generated script without executing it")
 )
 
 func main() {
@@ -172,6 +173,12 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	// Clear the spinner line before printing success message
 	log.GetSpinner().Clear()
 	log.Success("Script generated successfully!")
+
+	// If --print flag is set, just print the script and exit
+	if *printOnly {
+		fmt.Println(script)
+		return nil
+	}
 
 	// Get any additional arguments after the script file
 	scriptArgs := flag.Args()[1:]
