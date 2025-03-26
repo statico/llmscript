@@ -64,7 +64,7 @@ func (s *Spinner) String() string {
 
 func (s *Spinner) start() {
 	s.ticker = time.NewTicker(100 * time.Millisecond)
-	fmt.Println() // Start on a new line
+	fmt.Print("\r") // Start at beginning of line
 
 	for {
 		select {
