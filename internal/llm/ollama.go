@@ -33,6 +33,7 @@ func (p *OllamaProvider) GenerateScripts(ctx context.Context, description string
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to generate main script: %w", err)
 	}
+	log.Debug("Main script generated:\n%s", mainScript)
 
 	// Then generate the test script
 	testPrompt := p.formatPrompt(TestScriptPrompt, mainScript, description)
@@ -40,6 +41,7 @@ func (p *OllamaProvider) GenerateScripts(ctx context.Context, description string
 	if err != nil {
 		return ScriptPair{}, fmt.Errorf("failed to generate test script: %w", err)
 	}
+	log.Debug("Test script generated:\n%s", testScript)
 
 	return ScriptPair{
 		MainScript: strings.TrimSpace(mainScript),
@@ -109,7 +111,6 @@ func (p *OllamaProvider) generate(ctx context.Context, prompt string) (string, e
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	log.Debug("Raw Ollama response:\n%s", result.Response)
 	return result.Response, nil
 }
 
