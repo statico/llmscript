@@ -27,41 +27,45 @@ func NewOllamaProvider(config OllamaConfig) (*OllamaProvider, error) {
 
 // GenerateScripts creates a main script and test script from a natural language description
 func (p *OllamaProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
-	prompt := p.formatPrompt(generateScriptsPrompt, description)
-	response, err := p.generate(ctx, prompt)
+	// First generate the main script
+	mainPrompt := p.formatPrompt(FeatureScriptPrompt, description)
+	mainScript, err := p.generate(ctx, mainPrompt)
 	if err != nil {
-		return ScriptPair{}, fmt.Errorf("failed to generate scripts: %w", err)
+		return ScriptPair{}, fmt.Errorf("failed to generate main script: %w", err)
 	}
 
-	// Split response into main script and test script
-	parts := strings.Split(response, "---")
-	if len(parts) != 2 {
-		return ScriptPair{}, fmt.Errorf("invalid response format: expected two scripts separated by '---'")
+	// Then generate the test script
+	testPrompt := p.formatPrompt(TestScriptPrompt, mainScript, description)
+	testScript, err := p.generate(ctx, testPrompt)
+	if err != nil {
+		return ScriptPair{}, fmt.Errorf("failed to generate test script: %w", err)
 	}
 
 	return ScriptPair{
-		MainScript: strings.TrimSpace(parts[0]),
-		TestScript: strings.TrimSpace(parts[1]),
+		MainScript: strings.TrimSpace(mainScript),
+		TestScript: strings.TrimSpace(testScript),
 	}, nil
 }
 
 // FixScripts attempts to fix both scripts based on test failures
 func (p *OllamaProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
-	prompt := p.formatPrompt(fixScriptsPrompt, scripts.MainScript, scripts.TestScript, error)
-	response, err := p.generate(ctx, prompt)
+	// First fix the main script
+	mainPrompt := p.formatPrompt(FixScriptPrompt, scripts.MainScript, error)
+	fixedMainScript, err := p.generate(ctx, mainPrompt)
 	if err != nil {
-		return ScriptPair{}, fmt.Errorf("failed to fix scripts: %w", err)
+		return ScriptPair{}, fmt.Errorf("failed to fix main script: %w", err)
 	}
 
-	// Split response into main script and test script
-	parts := strings.Split(response, "---")
-	if len(parts) != 2 {
-		return ScriptPair{}, fmt.Errorf("invalid response format: expected two scripts separated by '---'")
+	// Then fix the test script
+	testPrompt := p.formatPrompt(FixScriptPrompt, scripts.TestScript, error)
+	fixedTestScript, err := p.generate(ctx, testPrompt)
+	if err != nil {
+		return ScriptPair{}, fmt.Errorf("failed to fix test script: %w", err)
 	}
 
 	return ScriptPair{
-		MainScript: strings.TrimSpace(parts[0]),
-		TestScript: strings.TrimSpace(parts[1]),
+		MainScript: strings.TrimSpace(fixedMainScript),
+		TestScript: strings.TrimSpace(fixedTestScript),
 	}, nil
 }
 

@@ -27,7 +27,7 @@ func NewClaudeProvider(config ClaudeConfig) (*ClaudeProvider, error) {
 
 // GenerateScript creates a shell script from a natural language description
 func (p *ClaudeProvider) GenerateScript(ctx context.Context, description string) (string, error) {
-	prompt := p.formatPrompt(generateFeatureScriptPrompt, description)
+	prompt := p.formatPrompt(FeatureScriptPrompt, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate script: %w", err)
@@ -37,7 +37,7 @@ func (p *ClaudeProvider) GenerateScript(ctx context.Context, description string)
 
 // GenerateTests creates test cases for a script based on its description
 func (p *ClaudeProvider) GenerateTests(ctx context.Context, script string, description string) ([]Test, error) {
-	prompt := p.formatPrompt(generateTestScriptPrompt, script, description)
+	prompt := p.formatPrompt(TestScriptPrompt, script, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tests: %w", err)
@@ -65,7 +65,7 @@ func (p *ClaudeProvider) GenerateTests(ctx context.Context, script string, descr
 // FixScript attempts to fix a script based on test failures
 func (p *ClaudeProvider) FixScript(ctx context.Context, script string, failures []TestFailure) (string, error) {
 	failuresStr := formatFailures(failures)
-	prompt := p.formatPrompt(fixScriptPrompt, script, failuresStr)
+	prompt := p.formatPrompt(FixScriptPrompt, script, failuresStr)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return "", fmt.Errorf("failed to fix script: %w", err)
