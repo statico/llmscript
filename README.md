@@ -26,7 +26,7 @@ Running it with a directory of PNG files would look like this:
 
 ```
 $ ./convert-pngs
-✓ Script generated successfully
+✓ Script generated successfully!
 Creating output directory
 Convering input/1.png
 Convering input/2.png
