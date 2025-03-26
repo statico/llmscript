@@ -32,7 +32,7 @@ func (p *BaseProvider) GenerateScript(ctx context.Context, description string) (
 }
 
 // GenerateTests is a default implementation that returns an error
-func (p *BaseProvider) GenerateTests(ctx context.Context, description string) ([]Test, error) {
+func (p *BaseProvider) GenerateTests(ctx context.Context, script string, description string) ([]Test, error) {
 	return nil, fmt.Errorf("GenerateTests not implemented")
 }
 

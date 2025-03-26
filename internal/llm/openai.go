@@ -25,46 +25,6 @@ func NewOpenAIProvider(config OpenAIConfig) (*OpenAIProvider, error) {
 	}, nil
 }
 
-// GenerateScripts creates a shell script and its test script from a natural language description
-func (p *OpenAIProvider) GenerateScripts(ctx context.Context, description string) (ScriptPair, error) {
-	prompt := p.formatPrompt(generateScriptsPrompt, description)
-	response, err := p.generate(ctx, prompt)
-	if err != nil {
-		return ScriptPair{}, fmt.Errorf("failed to generate scripts: %w", err)
-	}
-
-	// Split response into main script and test script
-	parts := strings.Split(response, "\n---\n")
-	if len(parts) != 2 {
-		return ScriptPair{}, fmt.Errorf("expected two scripts separated by '---', got %d parts", len(parts))
-	}
-
-	return ScriptPair{
-		MainScript: strings.TrimSpace(parts[0]),
-		TestScript: strings.TrimSpace(parts[1]),
-	}, nil
-}
-
-// FixScripts attempts to fix both scripts based on test failures
-func (p *OpenAIProvider) FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error) {
-	prompt := p.formatPrompt(fixScriptsPrompt, scripts.MainScript, scripts.TestScript, error)
-	response, err := p.generate(ctx, prompt)
-	if err != nil {
-		return ScriptPair{}, fmt.Errorf("failed to fix scripts: %w", err)
-	}
-
-	// Split response into main script and test script
-	parts := strings.Split(response, "\n---\n")
-	if len(parts) != 2 {
-		return ScriptPair{}, fmt.Errorf("expected two scripts separated by '---', got %d parts", len(parts))
-	}
-
-	return ScriptPair{
-		MainScript: strings.TrimSpace(parts[0]),
-		TestScript: strings.TrimSpace(parts[1]),
-	}, nil
-}
-
 // GenerateScript creates a shell script from a natural language description
 func (p *OpenAIProvider) GenerateScript(ctx context.Context, description string) (string, error) {
 	prompt := p.formatPrompt(generateScriptPrompt, description)
@@ -76,8 +36,8 @@ func (p *OpenAIProvider) GenerateScript(ctx context.Context, description string)
 }
 
 // GenerateTests creates test cases for a script based on its description
-func (p *OpenAIProvider) GenerateTests(ctx context.Context, description string) ([]Test, error) {
-	prompt := p.formatPrompt(generateTestsPrompt, "", description)
+func (p *OpenAIProvider) GenerateTests(ctx context.Context, script string, description string) ([]Test, error) {
+	prompt := p.formatPrompt(generateTestsPrompt, script, description)
 	response, err := p.generate(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tests: %w", err)

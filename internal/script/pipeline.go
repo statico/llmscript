@@ -2,10 +2,12 @@ package script
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/statico/llmscript/internal/llm"
@@ -78,62 +80,93 @@ func (p *Pipeline) GenerateAndTest(ctx context.Context, description string) (str
 		}
 	}
 
-	// Generate initial scripts
+	// Generate initial script and tests
 	if p.showProgress {
-		log.Info("Generating initial scripts...")
+		log.Info("Generating initial script...")
 	}
-	scripts, err := p.llm.GenerateScripts(ctx, description)
+	script, err := p.llm.GenerateScript(ctx, description)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate initial scripts: %w", err)
+		return "", fmt.Errorf("failed to generate initial script: %w", err)
 	}
 	if p.showProgress {
-		log.Debug("Initial scripts generated")
+		log.Debug("Initial script generated")
+	}
+
+	// Generate tests for the script
+	if p.showProgress {
+		log.Info("Generating tests...")
+	}
+	tests, err := p.llm.GenerateTests(ctx, script, description)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate tests: %w", err)
+	}
+	if p.showProgress {
+		log.Debug("Tests generated")
 	}
 
 	// Run test script and fix failures
 	for attempt := 0; attempt < p.maxAttempts; attempt++ {
 		if attempt > 0 {
 			if p.showProgress {
-				log.Info("Attempt %d/%d: Generating new scripts...", attempt+1, p.maxAttempts)
+				log.Info("Attempt %d/%d: Generating new script...", attempt+1, p.maxAttempts)
 			}
-			scripts, err = p.llm.GenerateScripts(ctx, description)
+			script, err = p.llm.GenerateScript(ctx, description)
 			if err != nil {
-				return "", fmt.Errorf("failed to generate new scripts: %w", err)
+				return "", fmt.Errorf("failed to generate new script: %w", err)
 			}
 			if p.showProgress {
-				log.Debug("New scripts generated")
+				log.Debug("New script generated")
+			}
+
+			// Generate new tests for the new script
+			if p.showProgress {
+				log.Info("Generating new tests...")
+			}
+			tests, err = p.llm.GenerateTests(ctx, script, description)
+			if err != nil {
+				return "", fmt.Errorf("failed to generate tests: %w", err)
+			}
+			if p.showProgress {
+				log.Debug("New tests generated")
 			}
 		}
 
 		// Try to fix any failures
 		for fix := 0; fix < p.maxFixes; fix++ {
-			if fix > 0 {
+			// Run tests first to get initial failures
+			failures, err := p.runTests(ctx, script, tests)
+			if err != nil {
+				return "", fmt.Errorf("failed to run tests: %w", err)
+			}
+			if len(failures) == 0 {
+				// Cache successful script if caching is enabled
+				if !p.noCache && p.cache != nil {
+					if err := p.cache.Set(description, llm.ScriptPair{
+						MainScript: script,
+						TestScript: generateTestScript(tests),
+					}); err != nil {
+						log.Warn("Failed to cache successful script: %v", err)
+					}
+				}
+				return script, nil
+			}
+
+			if fix < p.maxFixes-1 { // Don't try to fix on the last iteration
 				if p.showProgress {
 					log.Info("Fix attempt %d/%d...", fix+1, p.maxFixes)
 				}
-				scripts, err = p.llm.FixScripts(ctx, scripts, "Test script failed")
+				script, err = p.llm.FixScript(ctx, script, failures)
 				if err != nil {
-					return "", fmt.Errorf("failed to fix scripts: %w", err)
+					return "", fmt.Errorf("failed to fix script: %w", err)
 				}
 				if p.showProgress {
-					log.Debug("Scripts fixed")
+					log.Debug("Script fixed")
 				}
-			}
-
-			// Run test script
-			if err := p.runTestScript(ctx, scripts); err == nil {
-				// Cache successful scripts if caching is enabled
-				if !p.noCache && p.cache != nil {
-					if err := p.cache.Set(description, scripts); err != nil {
-						log.Warn("Failed to cache successful scripts: %v", err)
-					}
-				}
-				return scripts.MainScript, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("failed to generate working scripts after %d attempts", p.maxAttempts)
+	return "", fmt.Errorf("failed to generate working script after %d attempts", p.maxAttempts)
 }
 
 // runTestScript executes the test script in a controlled environment
@@ -166,4 +199,151 @@ func (p *Pipeline) runTestScript(ctx context.Context, scripts llm.ScriptPair) er
 	}
 
 	return nil
+}
+
+// runTests executes the tests in a controlled environment
+func (p *Pipeline) runTests(ctx context.Context, script string, tests []Test) ([]TestFailure, error) {
+	// Create a secure temporary directory for this test
+	testDir, err := os.MkdirTemp(p.workDir, "test-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create test directory: %w", err)
+	}
+	defer os.RemoveAll(testDir)
+
+	// Write the script to a file
+	scriptPath := filepath.Join(testDir, "script.sh")
+	if err := os.WriteFile(scriptPath, []byte(script), 0750); err != nil {
+		return nil, fmt.Errorf("failed to write script: %w", err)
+	}
+
+	var failures []TestFailure
+	for _, test := range tests {
+		// Create a clean test directory for each test
+		testCaseDir := filepath.Join(testDir, test.Name)
+		if err := os.MkdirAll(testCaseDir, 0750); err != nil {
+			return nil, fmt.Errorf("failed to create test case directory: %w", err)
+		}
+
+		// Run setup commands
+		for _, cmd := range test.Setup {
+			setupCmd := exec.CommandContext(ctx, "sh", "-c", cmd)
+			setupCmd.Dir = testCaseDir
+			setupCmd.Env = os.Environ()
+			for k, v := range test.Environment {
+				setupCmd.Env = append(setupCmd.Env, fmt.Sprintf("%s=%s", k, v))
+			}
+			if output, err := setupCmd.CombinedOutput(); err != nil {
+				failures = append(failures, TestFailure{
+					Test:     test,
+					Output:   string(output),
+					Error:    fmt.Errorf("setup failed: %w", err),
+					ExitCode: -1,
+				})
+				continue
+			}
+		}
+
+		// Run the test
+		cmd := exec.CommandContext(ctx, scriptPath)
+		cmd.Dir = testCaseDir
+		cmd.Env = os.Environ()
+		for k, v := range test.Environment {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		}
+
+		var stdout, stderr strings.Builder
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		// Set up input if provided
+		if test.Input != "" {
+			stdin, err := cmd.StdinPipe()
+			if err != nil {
+				return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+			}
+			go func() {
+				defer stdin.Close()
+				fmt.Fprint(stdin, test.Input)
+			}()
+		}
+
+		// Run with timeout
+		err := cmd.Start()
+		if err != nil {
+			failures = append(failures, TestFailure{
+				Test:     test,
+				Output:   stdout.String() + stderr.String(),
+				Error:    fmt.Errorf("failed to start test: %w", err),
+				ExitCode: -1,
+			})
+			continue
+		}
+
+		done := make(chan error)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		timeout := test.Timeout
+		if timeout == 0 {
+			timeout = p.timeout
+		}
+
+		select {
+		case err := <-done:
+			if err != nil {
+				var exitErr *exec.ExitError
+				exitCode := -1
+				if errors.As(err, &exitErr) {
+					exitCode = exitErr.ExitCode()
+				}
+				failures = append(failures, TestFailure{
+					Test:     test,
+					Output:   stdout.String() + stderr.String(),
+					Error:    err,
+					ExitCode: exitCode,
+				})
+				continue
+			}
+		case <-time.After(timeout):
+			if err := cmd.Process.Kill(); err != nil {
+				log.Warn("Failed to kill process: %v", err)
+			}
+			failures = append(failures, TestFailure{
+				Test:     test,
+				Output:   stdout.String() + stderr.String(),
+				Error:    fmt.Errorf("test timed out after %v", timeout),
+				ExitCode: -1,
+			})
+			continue
+		}
+
+		// Compare output
+		output := stdout.String()
+		if output != test.Expected {
+			failures = append(failures, TestFailure{
+				Test:     test,
+				Output:   output,
+				Error:    fmt.Errorf("output does not match expected:\nExpected: %s\nGot: %s", test.Expected, output),
+				ExitCode: 0,
+			})
+		}
+	}
+
+	return failures, nil
+}
+
+// generateTestScript converts a list of tests into a shell script
+func generateTestScript(tests []Test) string {
+	var b strings.Builder
+	b.WriteString("#!/bin/sh\nset -e\n\n")
+	for _, test := range tests {
+		b.WriteString(fmt.Sprintf("# Test: %s\n", test.Name))
+		for _, cmd := range test.Setup {
+			b.WriteString(cmd + "\n")
+		}
+		b.WriteString("echo '" + test.Input + "' | ./script.sh\n")
+		b.WriteString("[ \"$(echo '" + test.Input + "' | ./script.sh)\" = \"" + test.Expected + "\" ] || exit 1\n\n")
+	}
+	return b.String()
 }
