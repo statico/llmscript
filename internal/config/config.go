@@ -170,6 +170,7 @@ func WriteConfig(config *Config) error {
 	}()
 
 	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
 	if err := encoder.Encode(config); err != nil {
 		return fmt.Errorf("failed to encode config: %w", err)
 	}
