@@ -7,26 +7,25 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/statico/llmscript/internal/llm"
 	customlog "github.com/statico/llmscript/internal/log"
 	"gopkg.in/yaml.v3"
 )
 
+// LLMConfig holds the provider selection and per-provider settings. The
+// per-provider structs are reused from the llm package so there is a single
+// source of truth for their shape.
+type LLMConfig struct {
+	Provider   string               `yaml:"provider"`
+	Ollama     llm.OllamaConfig     `yaml:"ollama"`
+	Claude     llm.ClaudeConfig     `yaml:"claude"`
+	OpenAI     llm.OpenAIConfig     `yaml:"openai"`
+	Gemini     llm.GeminiConfig     `yaml:"gemini"`
+	OpenRouter llm.OpenRouterConfig `yaml:"openrouter"`
+}
+
 type Config struct {
-	LLM struct {
-		Provider string `yaml:"provider"`
-		Ollama   struct {
-			Model string `yaml:"model"`
-			Host  string `yaml:"host"`
-		} `yaml:"ollama"`
-		Claude struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"claude"`
-		OpenAI struct {
-			APIKey string `yaml:"api_key"`
-			Model  string `yaml:"model"`
-		} `yaml:"openai"`
-	} `yaml:"llm"`
+	LLM         LLMConfig     `yaml:"llm"`
 	MaxFixes    int           `yaml:"max_fixes"`
 	MaxAttempts int           `yaml:"max_attempts"`
 	Timeout     time.Duration `yaml:"timeout"`
@@ -35,43 +34,13 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		LLM: struct {
-			Provider string `yaml:"provider"`
-			Ollama   struct {
-				Model string `yaml:"model"`
-				Host  string `yaml:"host"`
-			} `yaml:"ollama"`
-			Claude struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"claude"`
-			OpenAI struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			} `yaml:"openai"`
-		}{
-			Provider: "ollama",
-			Ollama: struct {
-				Model string `yaml:"model"`
-				Host  string `yaml:"host"`
-			}{
-				Model: "llama3.2",
-				Host:  "http://localhost:11434",
-			},
-			Claude: struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			}{
-				APIKey: "${CLAUDE_API_KEY}",
-				Model:  "claude-3-opus-20240229",
-			},
-			OpenAI: struct {
-				APIKey string `yaml:"api_key"`
-				Model  string `yaml:"model"`
-			}{
-				APIKey: "${OPENAI_API_KEY}",
-				Model:  "gpt-4-turbo-preview",
-			},
+		LLM: LLMConfig{
+			Provider:   "ollama",
+			Ollama:     llm.OllamaConfig{Model: llm.DefaultOllamaModel, Host: llm.DefaultOllamaHost},
+			Claude:     llm.ClaudeConfig{APIKey: "${ANTHROPIC_API_KEY}", Model: llm.DefaultClaudeModel},
+			OpenAI:     llm.OpenAIConfig{APIKey: "${OPENAI_API_KEY}", Model: llm.DefaultOpenAIModel},
+			Gemini:     llm.GeminiConfig{APIKey: "${GEMINI_API_KEY}", Model: llm.DefaultGeminiModel},
+			OpenRouter: llm.OpenRouterConfig{APIKey: "${OPENROUTER_API_KEY}", Model: llm.DefaultOpenRouterModel},
 		},
 		MaxFixes:    10,
 		MaxAttempts: 3,
@@ -81,88 +50,75 @@ func DefaultConfig() *Config {
 }
 
 func interpolateEnvVars(data []byte) []byte {
-	content := string(data)
-	content = os.ExpandEnv(content)
-	return []byte(content)
+	return []byte(os.ExpandEnv(string(data)))
 }
 
 func LoadConfig() (*Config, error) {
+	// Start from defaults and let the config file override only the keys it
+	// actually specifies (yaml.v3 leaves absent fields untouched).
 	config := DefaultConfig()
 
-	// Try XDG_CONFIG_HOME first
+	configPath, ok, err := findConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		customlog.Debug("Config file not found, using defaults")
+		return config, nil
+	}
+
+	customlog.Debug("Found config file: %s", configPath)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// Interpolate environment variables before unmarshaling
+	data = interpolateEnvVars(data)
+
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	customlog.Debug("Loaded config: provider=%s", config.LLM.Provider)
+	return config, nil
+}
+
+// findConfigFile locates the config file, preferring XDG_CONFIG_HOME / ~/.config
+// and falling back to the OS-specific user config dir. The second return value
+// reports whether a file was found.
+func findConfigFile() (string, bool, error) {
 	configDir := os.Getenv("XDG_CONFIG_HOME")
 	if configDir == "" {
-		// If XDG_CONFIG_HOME is not set, try ~/.config
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get home directory: %w", err)
+			return "", false, fmt.Errorf("failed to get home directory: %w", err)
 		}
 		configDir = filepath.Join(homeDir, ".config")
 	}
 
 	configPath := filepath.Join(configDir, "llmscript", "config.yaml")
 	customlog.Debug("Looking for config file at: %s", configPath)
-	data, err := os.ReadFile(configPath)
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath, true, nil
+	} else if !os.IsNotExist(err) {
+		return "", false, fmt.Errorf("failed to stat config file: %w", err)
+	}
+
+	// Fall back to the OS-specific user config dir.
+	osConfigDir, err := os.UserConfigDir()
 	if err != nil {
-		if os.IsNotExist(err) {
-			// If not found in ~/.config, try UserConfigDir() as fallback
-			configDir, err = os.UserConfigDir()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get config dir: %w", err)
-			}
-			configPath = filepath.Join(configDir, "llmscript", "config.yaml")
-			customlog.Debug("Looking for config file at fallback location: %s", configPath)
-			data, err = os.ReadFile(configPath)
-			if err != nil {
-				if os.IsNotExist(err) {
-					customlog.Debug("Config file not found, using defaults")
-					return config, nil
-				}
-				return nil, fmt.Errorf("failed to read config file: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("failed to read config file: %w", err)
-		}
+		return "", false, fmt.Errorf("failed to get config dir: %w", err)
+	}
+	configPath = filepath.Join(osConfigDir, "llmscript", "config.yaml")
+	customlog.Debug("Looking for config file at fallback location: %s", configPath)
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath, true, nil
+	} else if !os.IsNotExist(err) {
+		return "", false, fmt.Errorf("failed to stat config file: %w", err)
 	}
 
-	customlog.Debug("Found config file: %s", configPath)
-
-	// Interpolate environment variables before unmarshaling
-	data = interpolateEnvVars(data)
-
-	// Create a temporary config to unmarshal into
-	var loadedConfig Config
-	if err := yaml.Unmarshal(data, &loadedConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	customlog.Debug("Loaded config from file: provider=%s", loadedConfig.LLM.Provider)
-
-	// Merge the loaded config with the default config
-	config.LLM.Provider = loadedConfig.LLM.Provider
-	config.LLM.Ollama.Model = loadedConfig.LLM.Ollama.Model
-	config.LLM.Ollama.Host = loadedConfig.LLM.Ollama.Host
-	config.LLM.Claude.APIKey = loadedConfig.LLM.Claude.APIKey
-	config.LLM.Claude.Model = loadedConfig.LLM.Claude.Model
-	config.LLM.OpenAI.APIKey = loadedConfig.LLM.OpenAI.APIKey
-	config.LLM.OpenAI.Model = loadedConfig.LLM.OpenAI.Model
-
-	customlog.Debug("Merged config: provider=%s", config.LLM.Provider)
-
-	// Only update numeric values if they are explicitly set in the YAML
-	if loadedConfig.MaxFixes != 0 {
-		config.MaxFixes = loadedConfig.MaxFixes
-	}
-	if loadedConfig.MaxAttempts != 0 {
-		config.MaxAttempts = loadedConfig.MaxAttempts
-	}
-	if loadedConfig.Timeout != 0 {
-		config.Timeout = loadedConfig.Timeout
-	}
-
-	config.ExtraPrompt = loadedConfig.ExtraPrompt
-
-	return config, nil
+	return "", false, nil
 }
 
 func WriteConfig(config *Config) error {

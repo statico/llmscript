@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0 # Get all tags and history
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true # Automatically generate release notes from commits
           draft: false

@@ -6,7 +6,7 @@ type OllamaConfig struct {
 	Host  string `yaml:"host"`
 }
 
-// ClaudeConfig represents configuration for the Claude provider
+// ClaudeConfig represents configuration for the Claude (Anthropic) provider
 type ClaudeConfig struct {
 	APIKey string `yaml:"api_key"`
 	Model  string `yaml:"model"`
@@ -18,10 +18,26 @@ type OpenAIConfig struct {
 	Model  string `yaml:"model"`
 }
 
-// ProviderConfig represents the configuration for any LLM provider
-type ProviderConfig struct {
-	Provider string       `yaml:"provider"`
-	Ollama   OllamaConfig `yaml:"ollama,omitempty"`
-	Claude   ClaudeConfig `yaml:"claude,omitempty"`
-	OpenAI   OpenAIConfig `yaml:"openai,omitempty"`
+// GeminiConfig represents configuration for the Google Gemini provider
+type GeminiConfig struct {
+	APIKey string `yaml:"api_key"`
+	Model  string `yaml:"model"`
+}
+
+// OpenRouterConfig represents configuration for the OpenRouter provider
+type OpenRouterConfig struct {
+	APIKey string `yaml:"api_key"`
+	Model  string `yaml:"model"`
+}
+
+// Config is the fully-resolved LLM configuration passed to NewProvider. It is
+// built from the user's config file, environment, and command-line flags.
+type Config struct {
+	Provider    string
+	ExtraPrompt string
+	Ollama      OllamaConfig
+	Claude      ClaudeConfig
+	OpenAI      OpenAIConfig
+	Gemini      GeminiConfig
+	OpenRouter  OpenRouterConfig
 }

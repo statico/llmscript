@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"time"
 
@@ -18,10 +19,10 @@ import (
 var (
 	writeConfig = flag.Bool("write-config", false, "Write default config to ~/.config/llmscript/config.yaml")
 	verbose     = flag.Bool("verbose", false, "Enable verbose output (includes debug messages)")
-	timeout     = flag.Duration("timeout", 30*time.Second, "Timeout for script execution")
-	maxFixes    = flag.Int("max-fixes", 3, "Maximum number of attempts to fix the script")
+	timeout     = flag.Duration("timeout", 30*time.Second, "Timeout for each script/test execution during testing")
+	maxFixes    = flag.Int("max-fixes", 10, "Maximum number of attempts to fix the script before regenerating")
 	maxAttempts = flag.Int("max-attempts", 3, "Maximum number of attempts to generate a working script")
-	llmProvider = flag.String("llm.provider", "", "LLM provider to use (overrides config)")
+	llmProvider = flag.String("llm.provider", "", "LLM provider to use: ollama, claude, openai, openrouter, gemini (overrides config)")
 	llmModel    = flag.String("llm.model", "", "LLM model to use (overrides config)")
 	extraPrompt = flag.String("prompt", "", "Additional prompt to provide to the LLM")
 	noCache     = flag.Bool("no-cache", false, "Skip using the cache for script generation")
@@ -61,38 +62,7 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	log.Debug("Loaded config: provider=%s, has_claude_api_key=%v, claude_model=%s",
-		cfg.LLM.Provider,
-		cfg.LLM.Claude.APIKey != "",
-		cfg.LLM.Claude.Model)
-
-	// Override config with command line flags
-	if *llmProvider != "" {
-		cfg.LLM.Provider = *llmProvider
-		log.Debug("Provider overridden by command line flag: %s", *llmProvider)
-	}
-	if *llmModel != "" {
-		switch cfg.LLM.Provider {
-		case "ollama":
-			cfg.LLM.Ollama.Model = *llmModel
-		case "claude":
-			cfg.LLM.Claude.Model = *llmModel
-		case "openai":
-			cfg.LLM.OpenAI.Model = *llmModel
-		}
-	}
-	if *timeout != 0 {
-		cfg.Timeout = *timeout
-	}
-	if *maxFixes != 0 {
-		cfg.MaxFixes = *maxFixes
-	}
-	if *maxAttempts != 0 {
-		cfg.MaxAttempts = *maxAttempts
-	}
-	if *extraPrompt != "" {
-		cfg.ExtraPrompt = *extraPrompt
-	}
+	applyFlagOverrides(cfg)
 
 	if len(flag.Args()) == 0 {
 		flag.Usage()
@@ -105,6 +75,45 @@ func main() {
 	}
 }
 
+// applyFlagOverrides applies command-line flags on top of the loaded config,
+// but only for flags the user explicitly set. This prevents flag default values
+// from silently clobbering values from the config file.
+func applyFlagOverrides(cfg *config.Config) {
+	set := map[string]bool{}
+	flag.Visit(func(f *flag.Flag) { set[f.Name] = true })
+
+	if set["llm.provider"] {
+		cfg.LLM.Provider = *llmProvider
+		log.Debug("Provider overridden by command line flag: %s", *llmProvider)
+	}
+	if set["llm.model"] {
+		switch cfg.LLM.Provider {
+		case "ollama":
+			cfg.LLM.Ollama.Model = *llmModel
+		case "claude", "anthropic":
+			cfg.LLM.Claude.Model = *llmModel
+		case "openai":
+			cfg.LLM.OpenAI.Model = *llmModel
+		case "openrouter":
+			cfg.LLM.OpenRouter.Model = *llmModel
+		case "gemini", "google":
+			cfg.LLM.Gemini.Model = *llmModel
+		}
+	}
+	if set["timeout"] {
+		cfg.Timeout = *timeout
+	}
+	if set["max-fixes"] {
+		cfg.MaxFixes = *maxFixes
+	}
+	if set["max-attempts"] {
+		cfg.MaxAttempts = *maxAttempts
+	}
+	if set["prompt"] {
+		cfg.ExtraPrompt = *extraPrompt
+	}
+}
+
 func runScript(cfg *config.Config, scriptFile string) error {
 	log.Info("Reading script file: %s", scriptFile)
 	content, err := os.ReadFile(scriptFile)
@@ -113,19 +122,14 @@ func runScript(cfg *config.Config, scriptFile string) error {
 	}
 
 	log.Info("Creating LLM provider: %s", cfg.LLM.Provider)
-	provider, err := llm.NewProvider(cfg.LLM.Provider, map[string]interface{}{
-		"ollama": map[string]interface{}{
-			"model": cfg.LLM.Ollama.Model,
-			"host":  cfg.LLM.Ollama.Host,
-		},
-		"claude": map[string]interface{}{
-			"api_key": cfg.LLM.Claude.APIKey,
-			"model":   cfg.LLM.Claude.Model,
-		},
-		"openai": map[string]interface{}{
-			"api_key": cfg.LLM.OpenAI.APIKey,
-			"model":   cfg.LLM.OpenAI.Model,
-		},
+	provider, err := llm.NewProvider(llm.Config{
+		Provider:    cfg.LLM.Provider,
+		ExtraPrompt: cfg.ExtraPrompt,
+		Ollama:      cfg.LLM.Ollama,
+		Claude:      cfg.LLM.Claude,
+		OpenAI:      cfg.LLM.OpenAI,
+		Gemini:      cfg.LLM.Gemini,
+		OpenRouter:  cfg.LLM.OpenRouter,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create LLM provider: %w", err)
@@ -151,22 +155,26 @@ func runScript(cfg *config.Config, scriptFile string) error {
 		return fmt.Errorf("failed to create pipeline: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
-	defer cancel()
+	// The per-script-execution timeout (cfg.Timeout) is applied inside the
+	// pipeline to each test run. The overall generate/test/fix loop is not
+	// time-bounded here (LLM calls and many fix attempts can legitimately take
+	// minutes); instead we cancel cleanly on Ctrl-C.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	log.Info("Generating and testing script")
-	script, err := pipeline.GenerateAndTest(ctx, string(content))
+	generated, err := pipeline.GenerateAndTest(ctx, string(content))
 	if err != nil {
 		return fmt.Errorf("failed to generate working script: %w", err)
 	}
 
 	if *verbose {
-		log.Info("Generated script:\n%s", script)
+		log.Info("Generated script:\n%s", generated)
 	}
 
 	// Write the script to a file
 	scriptPath := filepath.Join(workDir, "script.sh")
-	if err := os.WriteFile(scriptPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(scriptPath, []byte(generated), 0755); err != nil {
 		return fmt.Errorf("failed to write script: %w", err)
 	}
 
@@ -175,7 +183,7 @@ func runScript(cfg *config.Config, scriptFile string) error {
 
 	// If --print flag is set, just print the script and exit
 	if *printOnly {
-		fmt.Println(script)
+		fmt.Println(generated)
 		return nil
 	}
 

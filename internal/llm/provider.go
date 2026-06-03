@@ -6,33 +6,28 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 )
 
-// Test represents a test case for a script
-type Test struct {
-	Name        string
-	Setup       []string
-	Input       string
-	Expected    string
-	Timeout     time.Duration
-	Environment map[string]string
-}
+// Default models for each provider. These target the most capable tier as of
+// 2026; users can override any of them via config or the --llm.model flag.
+const (
+	DefaultOllamaModel     = "llama3.3"
+	DefaultOllamaHost      = "http://localhost:11434"
+	DefaultClaudeModel     = "claude-opus-4-8"
+	DefaultOpenAIModel     = "gpt-5.5"
+	DefaultGeminiModel     = "gemini-2.5-pro"
+	DefaultOpenRouterModel = "anthropic/claude-opus-4.8"
 
-// TestFailure represents a failed test case
-type TestFailure struct {
-	Test     Test
-	Output   string
-	Error    error
-	ExitCode int
-}
+	// openRouterBaseURL is OpenRouter's OpenAI-compatible API endpoint.
+	openRouterBaseURL = "https://openrouter.ai/api/v1"
+)
 
 // Provider defines the interface for LLM providers
 type Provider interface {
 	// GenerateScripts creates a main script and test script from a natural language description
 	GenerateScripts(ctx context.Context, description string) (ScriptPair, error)
-	// FixScripts attempts to fix both scripts based on test failures
-	FixScripts(ctx context.Context, scripts ScriptPair, error string) (ScriptPair, error)
+	// FixScripts attempts to fix the main script based on a test failure
+	FixScripts(ctx context.Context, scripts ScriptPair, failure string) (ScriptPair, error)
 	// Name returns a human-readable name for the provider
 	Name() string
 }
@@ -59,90 +54,73 @@ func GetPlatformInfo() string {
 	return strings.Join(info, "\n")
 }
 
-// NewProvider creates a new LLM provider based on the provider name
-func NewProvider(name string, config interface{}) (Provider, error) {
-	if name == "" {
-		name = "ollama" // Default to Ollama if no provider specified
+// NewProvider creates a new LLM provider from a fully-resolved Config.
+func NewProvider(cfg Config) (Provider, error) {
+	provider := cfg.Provider
+	if provider == "" {
+		provider = "ollama" // Default to Ollama if no provider specified
 	}
 
-	// Default Ollama config
-	ollamaConfig := OllamaConfig{
-		Model: "llama3.2",
-		Host:  "http://localhost:11434",
-	}
+	var gen generator
+	var err error
 
-	// If config is provided, try to extract values
-	if config != nil {
-		// Try to convert the config to a map[string]interface{} first
-		if cfgMap, ok := config.(map[string]interface{}); ok {
-			// Handle Ollama config
-			if ollamaCfg, ok := cfgMap["ollama"].(map[string]interface{}); ok {
-				if model, ok := ollamaCfg["model"].(string); ok && model != "" {
-					ollamaConfig.Model = model
-				}
-				if host, ok := ollamaCfg["host"].(string); ok && host != "" {
-					ollamaConfig.Host = host
-				}
-			}
-		}
-	}
-
-	switch name {
+	switch provider {
 	case "ollama":
-		return NewOllamaProvider(ollamaConfig)
-	case "claude":
-		if config == nil {
+		oc := cfg.Ollama
+		if oc.Model == "" {
+			oc.Model = DefaultOllamaModel
+		}
+		if oc.Host == "" {
+			oc.Host = DefaultOllamaHost
+		}
+		gen = newOllamaGenerator(oc)
+
+	case "claude", "anthropic":
+		if cfg.Claude.APIKey == "" {
 			return nil, fmt.Errorf("a Claude API key is required")
 		}
-		// Try to convert the config to a map[string]interface{}
-		cfgMap, ok := config.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid config type for Claude provider")
-		}
-		// Extract Claude config
-		claudeCfg, ok := cfgMap["claude"].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("missing Claude configuration")
-		}
-		apiKey, ok := claudeCfg["api_key"].(string)
-		if !ok || apiKey == "" {
-			return nil, fmt.Errorf("a Claude API key is required")
-		}
-		model, _ := claudeCfg["model"].(string)
+		model := cfg.Claude.Model
 		if model == "" {
-			model = "claude-3-opus-20240229" // Default model
+			model = DefaultClaudeModel
 		}
-		return NewClaudeProvider(ClaudeConfig{
-			APIKey: apiKey,
-			Model:  model,
-		})
+		gen = newClaudeGenerator(ClaudeConfig{APIKey: cfg.Claude.APIKey, Model: model})
+
 	case "openai":
-		if config == nil {
+		if cfg.OpenAI.APIKey == "" {
 			return nil, fmt.Errorf("an OpenAI API key is required")
 		}
-		// Try to convert the config to a map[string]interface{}
-		cfgMap, ok := config.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid config type for OpenAI provider")
-		}
-		// Extract OpenAI config
-		openaiCfg, ok := cfgMap["openai"].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("missing OpenAI configuration")
-		}
-		apiKey, ok := openaiCfg["api_key"].(string)
-		if !ok || apiKey == "" {
-			return nil, fmt.Errorf("an OpenAI API key is required")
-		}
-		model, _ := openaiCfg["model"].(string)
+		model := cfg.OpenAI.Model
 		if model == "" {
-			model = "gpt-4-turbo-preview" // Default model
+			model = DefaultOpenAIModel
 		}
-		return NewOpenAIProvider(OpenAIConfig{
-			APIKey: apiKey,
-			Model:  model,
-		})
+		gen = newOpenAIGenerator(cfg.OpenAI.APIKey, model)
+
+	case "openrouter":
+		if cfg.OpenRouter.APIKey == "" {
+			return nil, fmt.Errorf("an OpenRouter API key is required")
+		}
+		model := cfg.OpenRouter.Model
+		if model == "" {
+			model = DefaultOpenRouterModel
+		}
+		gen = newOpenRouterGenerator(cfg.OpenRouter.APIKey, model)
+
+	case "gemini", "google":
+		if cfg.Gemini.APIKey == "" {
+			return nil, fmt.Errorf("a Gemini API key is required")
+		}
+		model := cfg.Gemini.Model
+		if model == "" {
+			model = DefaultGeminiModel
+		}
+		gen, err = newGeminiGenerator(context.Background(), GeminiConfig{APIKey: cfg.Gemini.APIKey, Model: model})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+		}
+
 	default:
-		return nil, fmt.Errorf("unsupported provider: %s", name)
+		return nil, fmt.Errorf("unsupported provider: %s", provider)
 	}
+
+	return &scriptProvider{gen: gen, extraPrompt: cfg.ExtraPrompt}, nil
 }

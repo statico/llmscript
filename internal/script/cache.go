@@ -17,14 +17,20 @@ type Cache struct {
 	dir string
 }
 
-// NewCache creates a new cache instance
+// NewCache creates a new cache instance. The cache lives under the same config
+// directory as the config file, honoring XDG_CONFIG_HOME so it can be isolated
+// in tests and sandboxes.
 func NewCache() (*Cache, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	configDir := os.Getenv("XDG_CONFIG_HOME")
+	if configDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get home directory: %w", err)
+		}
+		configDir = filepath.Join(homeDir, ".config")
 	}
 
-	cacheDir := filepath.Join(homeDir, ".config", "llmscript", "cache")
+	cacheDir := filepath.Join(configDir, "llmscript", "cache")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 	}

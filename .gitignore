@@ -27,3 +27,8 @@ go.work
 # OS specific files
 .DS_Store
 Thumbs.db
+# local dev (sandboxed Go caches)
+.gocache/
+.gohome/
+.goenv
+bin/

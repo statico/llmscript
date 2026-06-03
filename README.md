@@ -6,7 +6,7 @@ llmscript is a shell script that uses a large language model (LLM) to build and 
 
 <img src="https://github.com/user-attachments/assets/6257eb3c-fe66-41b0-9b45-39ec29b40a3a" width="640" alt="a terminal window showing a demonstration of the llmscript tool to print hello world" />
 
-You can configure it to use [Ollama](https://ollama.com/) (free and local), [Claude](https://www.anthropic.com/claude) (paid), or [OpenAI](https://openai.com/) (paid).
+You can configure it to use [Ollama](https://ollama.com/) (free and local), [Claude](https://www.anthropic.com/claude) (paid), [OpenAI](https://openai.com/) (paid), [Google Gemini](https://ai.google.dev/) (paid), or [OpenRouter](https://openrouter.ai/) (paid, one key for many models).
 
 > [!NOTE]
 > Does this actually work? Yeah, somewhat! Could it create scripts that erase your drive? Maybe! Good luck!
@@ -53,11 +53,13 @@ If you want to generate a new script, use the `--no-cache` flag.
 
 ## Prerequisites
 
-- [Go](https://go.dev/) (1.22 or later)
+- [Go](https://go.dev/) (1.24 or later)
 - One of:
   - [Ollama](https://ollama.com/) running locally
-  - A [Claude](https://www.anthropic.com/claude) API key
+  - A [Claude](https://www.anthropic.com/claude) (Anthropic) API key
   - An [OpenAI](https://openai.com/) API key
+  - A [Google Gemini](https://ai.google.dev/) API key
+  - An [OpenRouter](https://openrouter.ai/) API key
 
 ## Installation
 
@@ -87,7 +89,7 @@ or run it directly like:
 $ llmscript hello-world
 ```
 
-By default, llmscript will use Ollama with the `llama3.2` model. You can configure this by creating a config file with the `llmscript --write-config` command to create a config file in `~/.config/llmscript/config.yaml` which you can edit. You can also use command-line args (see below).
+By default, llmscript will use Ollama with the `llama3.3` model. You can configure this by creating a config file with the `llmscript --write-config` command to create a config file in `~/.config/llmscript/config.yaml` which you can edit. You can also use command-line args (see below).
 
 ## How it works
 
@@ -132,21 +134,29 @@ Here's an example configuration:
 ```yaml
 # LLM configuration
 llm:
-  # The LLM provider to use (required)
-  provider: "ollama" # or "claude", "openai", etc.
+  # The LLM provider to use: ollama, claude, openai, openrouter, or gemini
+  provider: "ollama"
 
-  # Provider-specific settings
+  # Provider-specific settings (only the selected provider's block is used)
   ollama:
-    model: "llama3.2" # The model to use
+    model: "llama3.3" # The model to use
     host: "http://localhost:11434" # Optional: Ollama host URL
 
   claude:
-    api_key: "${CLAUDE_API_KEY}" # Environment variable reference
-    model: "claude-3-opus-20240229"
+    api_key: "${ANTHROPIC_API_KEY}" # Environment variable reference
+    model: "claude-opus-4-8"
 
   openai:
     api_key: "${OPENAI_API_KEY}"
-    model: "gpt-4-turbo-preview"
+    model: "gpt-5.5"
+
+  gemini:
+    api_key: "${GEMINI_API_KEY}"
+    model: "gemini-2.5-pro"
+
+  openrouter:
+    api_key: "${OPENROUTER_API_KEY}"
+    model: "anthropic/claude-opus-4.8" # OpenRouter uses provider/model IDs
 
 # Maximum number of attempts to fix the script allowed before restarting from step 2
 max_fixes: 10
@@ -154,13 +164,15 @@ max_fixes: 10
 # Maximum number of attempts to generate a working script before giving up completely
 max_attempts: 3
 
-# Timeout for script execution during testing (in seconds)
-timeout: 30
+# Timeout for each script/test execution during testing (e.g. 30s, 1m)
+timeout: 30s
 
 # Additional prompt to provide to the LLM
 additional_prompt: |
   Use ANSI color codes to make the output more readable.
 ```
+
+The default models above target the most capable tier of each provider as of 2026. Cheaper/faster alternatives include `claude-haiku-4-5`, `gpt-5.4-mini`, and `gemini-2.5-flash` — set `model:` to whichever you prefer.
 
 ### Environment Variables
 

@@ -110,7 +110,7 @@ func TestConfig(t *testing.T) {
   provider: "claude"
   claude:
     api_key: "${TEST_API_KEY}"
-    model: "claude-3-opus-20240229"
+    model: "claude-opus-4-8"
 max_fixes: 5
 max_attempts: 2
 timeout: 15s
@@ -132,8 +132,8 @@ additional_prompt: "Test prompt"
 		if cfg.LLM.Claude.APIKey != "test-key-123" {
 			t.Errorf("expected api_key=test-key-123, got %s", cfg.LLM.Claude.APIKey)
 		}
-		if cfg.LLM.Claude.Model != "claude-3-opus-20240229" {
-			t.Errorf("expected model=claude-3-opus-20240229, got %s", cfg.LLM.Claude.Model)
+		if cfg.LLM.Claude.Model != "claude-opus-4-8" {
+			t.Errorf("expected model=claude-opus-4-8, got %s", cfg.LLM.Claude.Model)
 		}
 		if cfg.MaxFixes != 5 {
 			t.Errorf("expected MaxFixes=5, got %d", cfg.MaxFixes)
@@ -174,6 +174,10 @@ additional_prompt: "Test prompt"
 		cfg.LLM.Claude.Model = ""
 		cfg.LLM.OpenAI.APIKey = ""
 		cfg.LLM.OpenAI.Model = ""
+		cfg.LLM.Gemini.APIKey = ""
+		cfg.LLM.Gemini.Model = ""
+		cfg.LLM.OpenRouter.APIKey = ""
+		cfg.LLM.OpenRouter.Model = ""
 		cfg.MaxFixes = 5
 		cfg.MaxAttempts = 2
 		cfg.Timeout = 15 * time.Second
@@ -200,6 +204,12 @@ additional_prompt: "Test prompt"
     api_key: ""
     model: ""
   openai:
+    api_key: ""
+    model: ""
+  gemini:
+    api_key: ""
+    model: ""
+  openrouter:
     api_key: ""
     model: ""
 max_fixes: 5

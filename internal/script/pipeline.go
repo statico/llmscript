@@ -12,12 +12,6 @@ import (
 	"github.com/statico/llmscript/internal/log"
 )
 
-// Test represents a test case for a script
-type Test = llm.Test
-
-// TestFailure represents a failed test case
-type TestFailure = llm.TestFailure
-
 // Pipeline handles the script generation and testing process
 type Pipeline struct {
 	llm         llm.Provider
