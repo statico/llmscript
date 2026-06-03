@@ -31,6 +31,10 @@ func (m *mockLLMProvider) Name() string {
 }
 
 func TestPipeline_GenerateAndTest(t *testing.T) {
+	// Isolate the cache directory (which lives under XDG_CONFIG_HOME) so the
+	// test never touches the real ~/.config and stays hermetic in CI/sandboxes.
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+
 	// Create a temporary directory for testing
 	tmpDir, err := os.MkdirTemp("", "llmscript-test-*")
 	if err != nil {
